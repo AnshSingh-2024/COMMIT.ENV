@@ -286,4 +286,137 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     console.log('HomeHarvest AI - Website loaded successfully! 🌱');
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const isKitchenPage = /kitchen\.html$/i.test(location.pathname) || document.title.toLowerCase().includes('kitchen');
+        if (!isKitchenPage) return;
+    
+        const storageKey = 'homeharvest_prefs_v1';
+        const loadPrefs = () => {
+            try { return JSON.parse(localStorage.getItem(storageKey)) || {}; } catch { return {}; }
+        };
+        const savePrefs = (prefs) => localStorage.setItem(storageKey, JSON.stringify(prefs));
+    
+        const prefs = Object.assign({ difficulty: 'Easy', time: '30', purchaseExtras: false, mood: '', cuisine: '', servings: 2, diet: null }, loadPrefs());
+    
+        // Elements
+        const difficultyGroup = document.getElementById('difficulty-group');
+        const timeSelect = document.getElementById('time-available');
+        const purchaseExtras = document.getElementById('purchase-extras');
+        const moodInput = document.getElementById('mood');
+        const cuisineInput = document.getElementById('cuisine');
+        const servingsInput = document.getElementById('servings');
+        const servingsDec = document.getElementById('servings-decrement');
+        const servingsInc = document.getElementById('servings-increment');
+        const summary = document.getElementById('prefs-summary');
+        const generateBtn = document.getElementById('generate-recipes');
+        const dietDisplay = document.getElementById('diet-display');
+        const editDietBtn = document.getElementById('edit-diet-btn');
+        const dietModal = document.getElementById('diet-modal');
+        const dietSave = document.getElementById('diet-save');
+        const dietCancel = document.getElementById('diet-cancel');
+        const dietOptions = document.querySelectorAll('.diet-option');
+    
+        // Initialize UI
+        const setActiveDifficulty = (value) => {
+            if (!difficultyGroup) return;
+            difficultyGroup.querySelectorAll('button').forEach(btn => {
+                const isActive = btn.dataset.value === value;
+                btn.classList.toggle('bg-green-600', isActive);
+                btn.classList.toggle('text-white', isActive);
+                btn.classList.toggle('text-gray-700', !isActive);
+            });
+        };
+        setActiveDifficulty(prefs.difficulty);
+        if (timeSelect) timeSelect.value = prefs.time;
+        if (purchaseExtras) {
+            purchaseExtras.checked = !!prefs.purchaseExtras;
+            // style toggle knob
+            const updateToggle = () => {
+                const track = purchaseExtras.parentElement.querySelector('span');
+                const knob = track.querySelector('span');
+                if (purchaseExtras.checked) {
+                    track.classList.remove('bg-gray-200');
+                    track.classList.add('bg-green-500');
+                    knob.style.transform = 'translateX(16px)';
+                } else {
+                    track.classList.add('bg-gray-200');
+                    track.classList.remove('bg-green-500');
+                    knob.style.transform = 'translateX(0px)';
+                }
+            };
+            updateToggle();
+            purchaseExtras.addEventListener('change', () => { prefs.purchaseExtras = purchaseExtras.checked; savePrefs(prefs); updateToggle(); renderSummary(); });
+        }
+        if (moodInput) moodInput.value = prefs.mood || '';
+        if (cuisineInput) cuisineInput.value = prefs.cuisine || '';
+        if (servingsInput) servingsInput.value = prefs.servings;
+        if (dietDisplay) dietDisplay.textContent = prefs.diet ? prefs.diet : 'Not set';
+    
+        // Events
+        if (difficultyGroup) {
+            difficultyGroup.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-value]');
+                if (!btn) return;
+                prefs.difficulty = btn.dataset.value;
+                savePrefs(prefs);
+                setActiveDifficulty(prefs.difficulty);
+                renderSummary();
+            });
+        }
+        if (timeSelect) timeSelect.addEventListener('change', () => { prefs.time = timeSelect.value; savePrefs(prefs); renderSummary(); });
+        if (moodInput) moodInput.addEventListener('input', () => { prefs.mood = moodInput.value; savePrefs(prefs); });
+        if (cuisineInput) cuisineInput.addEventListener('input', () => { prefs.cuisine = cuisineInput.value; savePrefs(prefs); });
+        if (servingsDec) servingsDec.addEventListener('click', () => { const v = Math.max(1, parseInt(servingsInput.value || '1', 10) - 1); servingsInput.value = v; prefs.servings = v; savePrefs(prefs); renderSummary(); });
+        if (servingsInc) servingsInc.addEventListener('click', () => { const v = Math.max(1, parseInt(servingsInput.value || '1', 10) + 1); servingsInput.value = v; prefs.servings = v; savePrefs(prefs); renderSummary(); });
+        if (servingsInput) servingsInput.addEventListener('change', () => { const v = Math.max(1, parseInt(servingsInput.value || '1', 10)); servingsInput.value = v; prefs.servings = v; savePrefs(prefs); renderSummary(); });
+    
+        // Diet modal handlers
+        let pendingDiet = prefs.diet;
+        const openDiet = () => { if (dietModal) { dietModal.classList.remove('hidden'); dietModal.classList.add('flex'); } };
+        const closeDiet = () => { if (dietModal) { dietModal.classList.add('hidden'); dietModal.classList.remove('flex'); } };
+        if (!prefs.diet) openDiet();
+        if (editDietBtn) editDietBtn.addEventListener('click', openDiet);
+        if (dietCancel) dietCancel.addEventListener('click', closeDiet);
+        dietOptions.forEach(opt => {
+            opt.addEventListener('click', () => {
+                dietOptions.forEach(o => o.classList.remove('ring-2','ring-green-500'));
+                opt.classList.add('ring-2','ring-green-500');
+                pendingDiet = opt.dataset.diet;
+            });
+        });
+        if (dietSave) dietSave.addEventListener('click', () => {
+            prefs.diet = pendingDiet || prefs.diet || 'Veg';
+            savePrefs(prefs);
+            if (dietDisplay) dietDisplay.textContent = prefs.diet;
+            closeDiet();
+            showNotification(`Diet set to ${prefs.diet}`, 'success');
+        });
+    
+        function renderSummary() {
+            if (!summary) return;
+            summary.textContent = `Difficulty: ${prefs.difficulty} • Time: ${prefs.time} min • Extras: ${prefs.purchaseExtras ? 'Yes' : 'No'} • Servings: ${prefs.servings}`;
+        }
+        renderSummary();
+    
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => {
+                const payload = {
+                    difficulty: prefs.difficulty,
+                    timeMinutes: parseInt(prefs.time, 10),
+                    openToPurchaseExtras: !!prefs.purchaseExtras,
+                    mood: (prefs.mood || '').trim() || null,
+                    cuisine: (prefs.cuisine || '').trim() || null,
+                    servingSize: prefs.servings,
+                    diet: prefs.diet || 'Veg'
+                };
+                console.log('Recipe Maker payload →', payload);
+                showNotification('Preferences saved. Ready to query AI Recipe Maker.', 'success');
+            });
+        }
+    });
+
+
+    
+
 });
