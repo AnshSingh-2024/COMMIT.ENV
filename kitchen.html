@@ -97,6 +97,81 @@
                 <p class="text-xl text-gray-600">Your Personal Culinary Companion</p>
             </div>
             
+            <!-- Recipe Maker Preferences -->
+                <div class="feature-card mb-10">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900">Recipe Maker Preferences</h3>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-sm text-gray-600">Diet:</span>
+                            <span id="diet-display" class="text-sm font-medium text-green-700 bg-green-100 px-2 py-1 rounded">Not set</span>
+                            <button id="edit-diet-btn" class="text-sm text-green-600 hover:text-green-700 underline">Edit</button>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <!-- Difficulty -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
+                            <div id="difficulty-group" class="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+                                <button type="button" data-value="Easy" class="px-4 py-2 text-sm hover:bg-green-50">Easy</button>
+                                <button type="button" data-value="Medium" class="px-4 py-2 text-sm hover:bg-green-50 border-l border-gray-200">Medium</button>
+                                <button type="button" data-value="Hard" class="px-4 py-2 text-sm hover:bg-green-50 border-l border-gray-200">Hard</button>
+                            </div>
+                        </div>
+
+                        <!-- Time Available -->
+                        <div>
+                            <label for="time-available" class="block text-sm font-medium text-gray-700 mb-2">Time available</label>
+                            <select id="time-available" class="w-full border-gray-300 rounded-lg text-sm">
+                                <option value="15">15 min</option>
+                                <option value="30">30 min</option>
+                                <option value="45">45 min</option>
+                                <option value="60">60 min</option>
+                                <option value="90">90+ min</option>
+                            </select>
+                        </div>
+
+                        <!-- Open to purchase extras -->
+                        <div class="flex items-center md:items-end">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Open to purchase extras</label>
+                                <label class="inline-flex items-center cursor-pointer select-none">
+                                    <input id="purchase-extras" type="checkbox" class="hidden">
+                                    <span class="w-10 h-6 flex items-center bg-gray-200 rounded-full p-1 transition-all">
+                                        <span class="bg-white w-4 h-4 rounded-full shadow transform transition-all"></span>
+                                    </span>
+                                    <span class="ml-3 text-sm text-gray-700">Yes</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Mood / Cuisine (Optional) -->
+                        <div>
+                            <label for="mood" class="block text-sm font-medium text-gray-700 mb-2">Mood (Optional)</label>
+                            <input id="mood" type="text" placeholder="Comforting, light, spicy..." class="w-full border-gray-300 rounded-lg text-sm px-3 py-2" />
+                        </div>
+                        <div>
+                            <label for="cuisine" class="block text-sm font-medium text-gray-700 mb-2">Cuisine (Optional)</label>
+                            <input id="cuisine" type="text" placeholder="Italian, Indian, Mexican..." class="w-full border-gray-300 rounded-lg text-sm px-3 py-2" />
+                        </div>
+
+                        <!-- Serving Size -->
+                        <div>
+                            <label for="servings" class="block text-sm font-medium text-gray-700 mb-2">Serving Size</label>
+                            <div class="flex items-center space-x-2">
+                                <button type="button" id="servings-decrement" class="px-3 py-2 bg-gray-100 rounded border border-gray-200">-</button>
+                                <input id="servings" type="number" min="1" value="2" class="w-20 text-center border-gray-300 rounded-lg text-sm px-3 py-2" />
+                                <button type="button" id="servings-increment" class="px-3 py-2 bg-gray-100 rounded border border-gray-200">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex items-center justify-between">
+                        <div id="prefs-summary" class="text-sm text-gray-600"></div>
+                        <button id="generate-recipes" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">Generate Suggestions</button>
+                    </div>
+                </div>
+            
             <div class="grid md:grid-cols-3 gap-8">
                 <!-- Upload Pantry Card -->
                 <div class="feature-card">
@@ -278,5 +353,21 @@
     </footer>
 
     <script src="script.js"></script>
+    
+    <!-- Diet Modal -->
+    <div id="diet-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Diet Preference</h3>
+            <p class="text-sm text-gray-600 mb-4">This is stored on your device and used for recipe generation.</p>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <button data-diet="Veg" class="diet-option bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg py-3 font-medium text-green-700">Veg</button>
+                <button data-diet="Non-Veg" class="diet-option bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg py-3 font-medium text-gray-700">Non-Veg</button>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button id="diet-cancel" class="px-4 py-2 text-gray-700 hover:text-gray-900">Cancel</button>
+                <button id="diet-save" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">Save</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
