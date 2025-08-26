@@ -167,8 +167,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    // CTA buttons on homepage are anchors; no JS needed
-
     // Interactive recipe suggestions (Kitchen page)
     (function attachRecipeClicks() {
         const isKitchenPage = /kitchen\.html$/i.test(location.pathname) || document.title.toLowerCase().includes('kitchen');
@@ -285,21 +283,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    console.log('HomeHarvest AI - Website loaded successfully! 🌱');
-
-    document.addEventListener('DOMContentLoaded', function() {
+    // Kitchen Page Specific Functionality
+    function initializeKitchenPage() {
         const isKitchenPage = /kitchen\.html$/i.test(location.pathname) || document.title.toLowerCase().includes('kitchen');
         if (!isKitchenPage) return;
-    
+
+        console.log('Initializing Kitchen Page...');
+
         const storageKey = 'homeharvest_prefs_v1';
+        
         const loadPrefs = () => {
-            try { return JSON.parse(localStorage.getItem(storageKey)) || {}; } catch { return {}; }
+            try { 
+                return JSON.parse(localStorage.getItem(storageKey)) || {}; 
+            } catch { 
+                return {}; 
+            }
         };
-        const savePrefs = (prefs) => localStorage.setItem(storageKey, JSON.stringify(prefs));
-    
-        const prefs = Object.assign({ difficulty: 'Easy', time: '30', purchaseExtras: false, mood: '', cuisine: '', servings: 2, diet: null }, loadPrefs());
-    
-        // Elements
+        
+        const savePrefs = (prefs) => {
+            localStorage.setItem(storageKey, JSON.stringify(prefs));
+        };
+
+        // Default preferences
+        const defaultPrefs = {
+            difficulty: 'Easy',
+            time: '30',
+            purchaseExtras: false,
+            mood: '',
+            cuisine: '',
+            servings: 2,
+            diet: null
+        };
+
+        const prefs = Object.assign({}, defaultPrefs, loadPrefs());
+
+        // Get all the elements
         const difficultyGroup = document.getElementById('difficulty-group');
         const timeSelect = document.getElementById('time-available');
         const purchaseExtras = document.getElementById('purchase-extras');
@@ -316,107 +334,260 @@ document.addEventListener('DOMContentLoaded', function() {
         const dietSave = document.getElementById('diet-save');
         const dietCancel = document.getElementById('diet-cancel');
         const dietOptions = document.querySelectorAll('.diet-option');
-    
-        // Initialize UI
-        const setActiveDifficulty = (value) => {
+
+        console.log('Elements found:', {
+            difficultyGroup: !!difficultyGroup,
+            timeSelect: !!timeSelect,
+            purchaseExtras: !!purchaseExtras,
+            moodInput: !!moodInput,
+            cuisineInput: !!cuisineInput,
+            servingsInput: !!servingsInput,
+            servingsDec: !!servingsDec,
+            servingsInc: !!servingsInc,
+            summary: !!summary,
+            generateBtn: !!generateBtn,
+            dietDisplay: !!dietDisplay,
+            editDietBtn: !!editDietBtn,
+            dietModal: !!dietModal,
+            dietSave: !!dietSave,
+            dietCancel: !!dietCancel,
+            dietOptions: dietOptions.length
+        });
+
+        // Initialize difficulty buttons
+        function setActiveDifficulty(value) {
             if (!difficultyGroup) return;
             difficultyGroup.querySelectorAll('button').forEach(btn => {
                 const isActive = btn.dataset.value === value;
-                btn.classList.toggle('bg-green-600', isActive);
-                btn.classList.toggle('text-white', isActive);
-                btn.classList.toggle('text-gray-700', !isActive);
-            });
-        };
-        setActiveDifficulty(prefs.difficulty);
-        if (timeSelect) timeSelect.value = prefs.time;
-        if (purchaseExtras) {
-            purchaseExtras.checked = !!prefs.purchaseExtras;
-            // style toggle knob
-            const updateToggle = () => {
-                const track = purchaseExtras.parentElement.querySelector('span');
-                const knob = track.querySelector('span');
-                if (purchaseExtras.checked) {
-                    track.classList.remove('bg-gray-200');
-                    track.classList.add('bg-green-500');
-                    knob.style.transform = 'translateX(16px)';
+                if (isActive) {
+                    btn.classList.add('bg-green-600', 'text-white');
+                    btn.classList.remove('text-gray-700', 'hover:bg-green-50');
                 } else {
-                    track.classList.add('bg-gray-200');
-                    track.classList.remove('bg-green-500');
-                    knob.style.transform = 'translateX(0px)';
+                    btn.classList.remove('bg-green-600', 'text-white');
+                    btn.classList.add('text-gray-700', 'hover:bg-green-50');
                 }
-            };
-            updateToggle();
-            purchaseExtras.addEventListener('change', () => { prefs.purchaseExtras = purchaseExtras.checked; savePrefs(prefs); updateToggle(); renderSummary(); });
+            });
         }
-        if (moodInput) moodInput.value = prefs.mood || '';
-        if (cuisineInput) cuisineInput.value = prefs.cuisine || '';
-        if (servingsInput) servingsInput.value = prefs.servings;
-        if (dietDisplay) dietDisplay.textContent = prefs.diet ? prefs.diet : 'Not set';
-    
-        // Events
+
+        // Initialize toggle switch styling
+        function updateToggleSwitch() {
+            if (!purchaseExtras) return;
+            const toggleTrack = purchaseExtras.parentElement.querySelector('span');
+            const toggleKnob = toggleTrack.querySelector('span');
+            
+            if (purchaseExtras.checked) {
+                toggleTrack.classList.remove('bg-gray-200');
+                toggleTrack.classList.add('bg-green-500');
+                toggleKnob.style.transform = 'translateX(16px)';
+            } else {
+                toggleTrack.classList.add('bg-gray-200');
+                toggleTrack.classList.remove('bg-green-500');
+                toggleKnob.style.transform = 'translateX(0px)';
+            }
+        }
+
+        // Initialize UI with current preferences
+        function initializeUI() {
+            setActiveDifficulty(prefs.difficulty);
+            if (timeSelect) timeSelect.value = prefs.time;
+            if (purchaseExtras) {
+                purchaseExtras.checked = prefs.purchaseExtras;
+                updateToggleSwitch();
+            }
+            if (moodInput) moodInput.value = prefs.mood;
+            if (cuisineInput) cuisineInput.value = prefs.cuisine;
+            if (servingsInput) servingsInput.value = prefs.servings;
+            if (dietDisplay) {
+                dietDisplay.textContent = prefs.diet || 'Not set';
+                dietDisplay.className = prefs.diet ? 
+                    'text-sm font-medium text-green-700 bg-green-100 px-2 py-1 rounded' :
+                    'text-sm font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded';
+            }
+            renderSummary();
+        }
+
+        // Render preferences summary
+        function renderSummary() {
+            if (!summary) return;
+            const timeText = prefs.time === '90' ? '90+ min' : `${prefs.time} min`;
+            summary.textContent = `Difficulty: ${prefs.difficulty} • Time: ${timeText} • Extras: ${prefs.purchaseExtras ? 'Yes' : 'No'} • Servings: ${prefs.servings}`;
+        }
+
+        // Event listeners for difficulty buttons
         if (difficultyGroup) {
             difficultyGroup.addEventListener('click', (e) => {
                 const btn = e.target.closest('button[data-value]');
                 if (!btn) return;
+                
                 prefs.difficulty = btn.dataset.value;
                 savePrefs(prefs);
                 setActiveDifficulty(prefs.difficulty);
                 renderSummary();
+                showNotification(`Difficulty set to ${prefs.difficulty}`, 'success');
             });
         }
-        if (timeSelect) timeSelect.addEventListener('change', () => { prefs.time = timeSelect.value; savePrefs(prefs); renderSummary(); });
-        if (moodInput) moodInput.addEventListener('input', () => { prefs.mood = moodInput.value; savePrefs(prefs); });
-        if (cuisineInput) cuisineInput.addEventListener('input', () => { prefs.cuisine = cuisineInput.value; savePrefs(prefs); });
-        if (servingsDec) servingsDec.addEventListener('click', () => { const v = Math.max(1, parseInt(servingsInput.value || '1', 10) - 1); servingsInput.value = v; prefs.servings = v; savePrefs(prefs); renderSummary(); });
-        if (servingsInc) servingsInc.addEventListener('click', () => { const v = Math.max(1, parseInt(servingsInput.value || '1', 10) + 1); servingsInput.value = v; prefs.servings = v; savePrefs(prefs); renderSummary(); });
-        if (servingsInput) servingsInput.addEventListener('change', () => { const v = Math.max(1, parseInt(servingsInput.value || '1', 10)); servingsInput.value = v; prefs.servings = v; savePrefs(prefs); renderSummary(); });
-    
-        // Diet modal handlers
+
+        // Event listener for time select
+        if (timeSelect) {
+            timeSelect.addEventListener('change', () => {
+                prefs.time = timeSelect.value;
+                savePrefs(prefs);
+                renderSummary();
+            });
+        }
+
+        // Event listener for purchase extras toggle
+        if (purchaseExtras) {
+            purchaseExtras.addEventListener('change', () => {
+                prefs.purchaseExtras = purchaseExtras.checked;
+                savePrefs(prefs);
+                updateToggleSwitch();
+                renderSummary();
+                showNotification(`Purchase extras: ${prefs.purchaseExtras ? 'Enabled' : 'Disabled'}`, 'success');
+            });
+        }
+
+        // Event listeners for mood and cuisine inputs
+        if (moodInput) {
+            moodInput.addEventListener('input', () => {
+                prefs.mood = moodInput.value;
+                savePrefs(prefs);
+            });
+        }
+
+        if (cuisineInput) {
+            cuisineInput.addEventListener('input', () => {
+                prefs.cuisine = cuisineInput.value;
+                savePrefs(prefs);
+            });
+        }
+
+        // Event listeners for servings
+        if (servingsDec) {
+            servingsDec.addEventListener('click', () => {
+                const newValue = Math.max(1, prefs.servings - 1);
+                prefs.servings = newValue;
+                servingsInput.value = newValue;
+                savePrefs(prefs);
+                renderSummary();
+            });
+        }
+
+        if (servingsInc) {
+            servingsInc.addEventListener('click', () => {
+                const newValue = prefs.servings + 1;
+                prefs.servings = newValue;
+                servingsInput.value = newValue;
+                savePrefs(prefs);
+                renderSummary();
+            });
+        }
+
+        if (servingsInput) {
+            servingsInput.addEventListener('change', () => {
+                const newValue = Math.max(1, parseInt(servingsInput.value) || 1);
+                prefs.servings = newValue;
+                servingsInput.value = newValue;
+                savePrefs(prefs);
+                renderSummary();
+            });
+        }
+
+        // Diet modal functionality
         let pendingDiet = prefs.diet;
-        const openDiet = () => { if (dietModal) { dietModal.classList.remove('hidden'); dietModal.classList.add('flex'); } };
-        const closeDiet = () => { if (dietModal) { dietModal.classList.add('hidden'); dietModal.classList.remove('flex'); } };
-        if (!prefs.diet) openDiet();
-        if (editDietBtn) editDietBtn.addEventListener('click', openDiet);
-        if (dietCancel) dietCancel.addEventListener('click', closeDiet);
+
+        function openDietModal() {
+            if (dietModal) {
+                dietModal.classList.remove('hidden');
+                dietModal.classList.add('flex');
+                // Reset selection to current diet
+                pendingDiet = prefs.diet;
+                dietOptions.forEach(opt => {
+                    if (opt.dataset.diet === prefs.diet) {
+                        opt.classList.add('ring-2', 'ring-green-500');
+                    } else {
+                        opt.classList.remove('ring-2', 'ring-green-500');
+                    }
+                });
+            }
+        }
+
+        function closeDietModal() {
+            if (dietModal) {
+                dietModal.classList.add('hidden');
+                dietModal.classList.remove('flex');
+            }
+        }
+
+        // Open diet modal on first visit if no diet is set
+        if (!prefs.diet) {
+            setTimeout(openDietModal, 500); // Small delay for better UX
+        }
+
+        // Diet modal event listeners
+        if (editDietBtn) {
+            editDietBtn.addEventListener('click', openDietModal);
+        }
+
+        if (dietCancel) {
+            dietCancel.addEventListener('click', closeDietModal);
+        }
+
+        // Diet option selection
         dietOptions.forEach(opt => {
             opt.addEventListener('click', () => {
-                dietOptions.forEach(o => o.classList.remove('ring-2','ring-green-500'));
-                opt.classList.add('ring-2','ring-green-500');
+                dietOptions.forEach(o => o.classList.remove('ring-2', 'ring-green-500'));
+                opt.classList.add('ring-2', 'ring-green-500');
                 pendingDiet = opt.dataset.diet;
             });
         });
-        if (dietSave) dietSave.addEventListener('click', () => {
-            prefs.diet = pendingDiet || prefs.diet || 'Veg';
-            savePrefs(prefs);
-            if (dietDisplay) dietDisplay.textContent = prefs.diet;
-            closeDiet();
-            showNotification(`Diet set to ${prefs.diet}`, 'success');
-        });
-    
-        function renderSummary() {
-            if (!summary) return;
-            summary.textContent = `Difficulty: ${prefs.difficulty} • Time: ${prefs.time} min • Extras: ${prefs.purchaseExtras ? 'Yes' : 'No'} • Servings: ${prefs.servings}`;
+
+        // Save diet preference
+        if (dietSave) {
+            dietSave.addEventListener('click', () => {
+                prefs.diet = pendingDiet || prefs.diet || 'Veg';
+                savePrefs(prefs);
+                
+                if (dietDisplay) {
+                    dietDisplay.textContent = prefs.diet;
+                    dietDisplay.className = 'text-sm font-medium text-green-700 bg-green-100 px-2 py-1 rounded';
+                }
+                
+                closeDietModal();
+                showNotification(`Diet preference set to ${prefs.diet}`, 'success');
+            });
         }
-        renderSummary();
-    
+
+        // Generate recipes button
         if (generateBtn) {
             generateBtn.addEventListener('click', () => {
                 const payload = {
                     difficulty: prefs.difficulty,
                     timeMinutes: parseInt(prefs.time, 10),
-                    openToPurchaseExtras: !!prefs.purchaseExtras,
-                    mood: (prefs.mood || '').trim() || null,
-                    cuisine: (prefs.cuisine || '').trim() || null,
+                    openToPurchaseExtras: prefs.purchaseExtras,
+                    mood: prefs.mood.trim() || null,
+                    cuisine: prefs.cuisine.trim() || null,
                     servingSize: prefs.servings,
                     diet: prefs.diet || 'Veg'
                 };
+                
                 console.log('Recipe Maker payload →', payload);
-                showNotification('Preferences saved. Ready to query AI Recipe Maker.', 'success');
+                showNotification('Generating personalized recipes based on your preferences...', 'success');
+                
+                // Simulate recipe generation
+                setTimeout(() => {
+                    showNotification('Found 5 recipes matching your preferences!', 'success');
+                }, 2000);
             });
         }
-    });
 
+        // Initialize the UI
+        initializeUI();
+        console.log('Kitchen Page initialized successfully!');
+    }
 
-    
+    // Initialize kitchen page functionality
+    initializeKitchenPage();
 
-});
+    console.log('HomeHarvest AI - Website loaded successfully! 🌱');
+}); 
