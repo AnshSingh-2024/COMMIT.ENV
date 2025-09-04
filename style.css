@@ -1,0 +1,173 @@
+/* Custom CSS for HomeHarvest AI */
+
+/* Smooth scrolling for the entire page */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Feature card styling with hover effects */
+.feature-card {
+    @apply bg-white rounded-xl p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:transform hover:-translate-y-2;
+    border: 1px solid #f3f4f6;
+}
+
+.feature-card:hover {
+    border-color: #22c55e;
+}
+
+/* Navigation link styling */
+.nav-link {
+    @apply transition-all duration-200 relative;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 50%;
+    background-color: #22c55e;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+/* Mobile navigation link styling */
+.mobile-nav-link {
+    @apply transition-colors duration-200;
+}
+
+/* Upload area styling */
+.upload-area {
+    @apply transition-all duration-300;
+}
+
+.upload-area:hover {
+    @apply bg-green-50;
+}
+
+/* Custom animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Apply animations to sections */
+section {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* Hero section gradient animation */
+#home {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Button hover effects */
+button {
+    @apply transition-all duration-300;
+}
+
+button:hover {
+    @apply shadow-xl;
+}
+
+/* Card hover effects for community section */
+.bg-green-50, .bg-blue-50, .bg-purple-50, .bg-yellow-50, .bg-red-50, .bg-orange-50 {
+    @apply transition-all duration-200;
+}
+
+.bg-green-50:hover, .bg-blue-50:hover, .bg-purple-50:hover, .bg-yellow-50:hover, .bg-red-50:hover, .bg-orange-50:hover {
+    @apply transform scale-105;
+}
+
+/* Badge animations */
+.bg-yellow-50, .bg-green-50, .bg-blue-50, .bg-purple-50 {
+    @apply transition-all duration-200;
+}
+
+.bg-yellow-50:hover, .bg-green-50:hover, .bg-blue-50:hover, .bg-purple-50:hover {
+    @apply transform scale-110 shadow-lg;
+}
+
+/* Loading animation for file uploads */
+.upload-loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #22c55e;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #16a34a;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .feature-card {
+        @apply p-4;
+    }
+    
+    .feature-card:hover {
+        @apply transform-none;
+    }
+}
+
+/* Focus states for accessibility */
+.nav-link:focus, .mobile-nav-link:focus, button:focus {
+    @apply outline-none ring-2 ring-green-500 ring-offset-2;
+}
+
+/* Print styles */
+@media print {
+    .feature-card {
+        @apply shadow-none border border-gray-300;
+    }
+    
+    button {
+        @apply bg-gray-300 text-gray-900;
+    }
+}
