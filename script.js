@@ -26,8 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // General file upload handlers
-        setupFileUpload('pantry-upload', 'pantry-preview', 'pantry-image');
         setupFileUpload('plant-upload', 'plant-preview', 'plant-image');
     }
 
@@ -95,9 +93,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function logout() {
         localStorage.removeItem('homeHarvestUser');
-        sessionStorage.removeItem('lastGeneratedRecipes'); // Clear recipes on logout
-        localStorage.removeItem('kitchenPreferences'); // Clear preferences on logout
+        sessionStorage.removeItem('lastGeneratedRecipes');
+        localStorage.removeItem('kitchenPreferences');
         window.location.href = 'login.html';
+    }
+
+    // --- Loading Animation ---
+    function showLoader(text) {
+        document.getElementById('loader-text').textContent = text;
+        document.getElementById('loader-modal').classList.remove('hidden');
+        document.getElementById('loader-modal').classList.add('flex');
+    }
+
+    function hideLoader() {
+        document.getElementById('loader-modal').classList.add('hidden');
+        document.getElementById('loader-modal').classList.remove('flex');
     }
 
     // --- Page-Specific Initializers ---
@@ -189,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const user = getSession();
         if (!user) return;
 
-        // --- Preferences UI Elements ---
+        // --- UI Elements ---
         const difficultyGroup = document.getElementById('difficulty-group');
         const timeSelect = document.getElementById('time-available');
         const servingsInput = document.getElementById('servings');
@@ -199,6 +209,62 @@ document.addEventListener('DOMContentLoaded', function() {
         const cuisineInput = document.getElementById('cuisine');
         const dietDisplay = document.getElementById('diet-display');
         const generateBtn = document.getElementById('generate-recipes');
+
+        // --- Pantry Upload Elements ---
+        const pantryUploadInput = document.getElementById('pantry-upload');
+        const pantryUploadArea = document.getElementById('pantry-upload-area');
+        const pantryPreview = document.getElementById('pantry-preview');
+        const pantryImage = document.getElementById('pantry-image');
+        const pantryConfirmBtn = document.getElementById('pantry-confirm-btn');
+        const pantryRemoveBtn = document.getElementById('pantry-remove-btn');
+        let currentPantryFile = null;
+
+        // --- Pantry Upload Logic ---
+        pantryUploadArea.addEventListener('click', () => pantryUploadInput.click());
+
+        pantryUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                currentPantryFile = file;
+                pantryImage.src = URL.createObjectURL(file);
+                pantryPreview.classList.remove('hidden');
+                pantryUploadArea.classList.add('hidden');
+            }
+        });
+
+        pantryRemoveBtn.addEventListener('click', () => {
+            currentPantryFile = null;
+            pantryUploadInput.value = ''; // Clear the file input
+            pantryPreview.classList.add('hidden');
+            pantryUploadArea.classList.remove('hidden');
+        });
+
+        pantryConfirmBtn.addEventListener('click', async () => {
+            if (!currentPantryFile) return;
+
+            const formData = new FormData();
+            formData.append('file', currentPantryFile);
+
+            showLoader('Analyzing your pantry...');
+            try {
+                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showNotification(data.message || 'Inventory updated!', 'success');
+                    fetchAndDisplayInventory(); // Refresh inventory display
+                } else {
+                    showNotification(data.detail || 'Upload failed.', 'error');
+                }
+            } catch (error) {
+                showNotification('An error occurred during upload.', 'error');
+            } finally {
+                hideLoader();
+                pantryRemoveBtn.click(); // Reset the upload area
+            }
+        });
 
         // --- Functions to save and load preferences ---
         function savePreferences() {
@@ -215,22 +281,16 @@ document.addEventListener('DOMContentLoaded', function() {
         function loadPreferences() {
             const prefs = JSON.parse(localStorage.getItem('kitchenPreferences'));
             if (!prefs) return;
-
-            // Set difficulty
             difficultyGroup.querySelectorAll('button').forEach(b => {
                 b.classList.remove('bg-green-600', 'text-white');
                 if (b.dataset.value === prefs.difficulty) {
                      b.classList.add('bg-green-600', 'text-white');
                 }
             });
-
-            // Set other values
             timeSelect.value = prefs.time;
             servingsInput.value = prefs.servings;
             cuisineInput.value = prefs.cuisine;
             purchaseExtras.checked = prefs.purchase;
-
-            // Update toggle switch UI
             updatePurchaseToggleUI();
         }
 
@@ -248,14 +308,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-
         // --- Event Listeners for Preferences ---
         difficultyGroup.addEventListener('click', (e) => {
             const btn = e.target.closest('button[data-value]');
             if (!btn) return;
-            difficultyGroup.querySelectorAll('button').forEach(b => {
-                b.classList.remove('bg-green-600', 'text-white');
-            });
+            difficultyGroup.querySelectorAll('button').forEach(b => b.classList.remove('bg-green-600', 'text-white'));
             btn.classList.add('bg-green-600', 'text-white');
             savePreferences();
         });
@@ -276,7 +333,6 @@ document.addEventListener('DOMContentLoaded', function() {
              savePreferences();
         });
 
-        // Add event listeners to other inputs to save on change
         [timeSelect, servingsInput, cuisineInput].forEach(el => {
             el.addEventListener('change', savePreferences);
         });
@@ -284,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // --- Generate Recipes Button ---
         generateBtn.addEventListener('click', async () => {
-            savePreferences(); // Save latest prefs before generating
+            savePreferences();
             const payload = {
                 Difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value || 'Medium',
                 TimeAvailable: parseInt(timeSelect.value, 10),
@@ -294,8 +350,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 Diet: dietDisplay.textContent || 'Veg'
             };
 
-            showNotification('Generating recipes from your pantry...', 'info');
-
+            showLoader('Generating your recipes...');
              try {
                 const response = await fetch(`${API_BASE_URL}/recipes/${user.user_id}`, {
                     method: 'POST',
@@ -305,28 +360,55 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 if(response.ok) {
                      displayRecipes(data.Recipes);
-                     // Save recipes to session storage
                      sessionStorage.setItem('lastGeneratedRecipes', JSON.stringify(data.Recipes));
                 } else {
                     showNotification(data.detail || 'Could not generate recipes. Is your pantry empty?', 'error');
                 }
              } catch(error) {
                  showNotification('An error occurred while generating recipes.', 'error');
+             } finally {
+                hideLoader();
              }
         });
 
+        // --- Inventory Display Function ---
+        async function fetchAndDisplayInventory() {
+            const inventoryContainer = document.getElementById('inventory-display');
+            try {
+                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`);
+                if (!response.ok) {
+                    inventoryContainer.innerHTML = `<p class="text-gray-500">Could not load inventory.</p>`;
+                    return;
+                }
+                const inventoryData = await response.json();
+                if (inventoryData.items && inventoryData.items.length > 0) {
+                    inventoryContainer.innerHTML = ''; // Clear existing
+                    inventoryData.items.forEach(item => {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'flex justify-between items-center bg-green-50 p-2 rounded-lg animate-fade-in';
+                        itemEl.innerHTML = `
+                            <span class="text-green-800 font-medium">${item.item_name}</span>
+                            <span class="bg-green-200 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">${item.quantity}</span>
+                        `;
+                        inventoryContainer.appendChild(itemEl);
+                    });
+                } else {
+                     inventoryContainer.innerHTML = `<p class="text-gray-500">Your inventory is empty. Upload a photo to get started!</p>`;
+                }
+            } catch (error) {
+                 inventoryContainer.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`;
+            }
+        }
+
         // --- Initial Page Load Logic ---
-
-        // 1. Load saved preferences from localStorage
         loadPreferences();
-
-        // 2. Load and display saved recipes from sessionStorage
         const savedRecipes = sessionStorage.getItem('lastGeneratedRecipes');
         if (savedRecipes) {
             displayRecipes(JSON.parse(savedRecipes));
         }
 
-        // 3. Fetch user's diet preference from the server
+        fetchAndDisplayInventory();
+
         try {
             const response = await fetch(`${API_BASE_URL}/user/${user.user_id}`);
             if(response.ok) {
@@ -344,6 +426,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // --- Helper Functions ---
+    // Generic file upload for other pages (like Smart Garden)
     function setupFileUpload(inputId, previewId, imageId) {
         const uploadInput = document.getElementById(inputId);
         if (!uploadInput) return;
@@ -353,40 +436,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const uploadArea = uploadInput.closest('.upload-area');
 
         uploadArea.addEventListener('click', () => uploadInput.click());
-        uploadInput.addEventListener('change', async (e) => {
+        uploadInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 image.src = URL.createObjectURL(file);
                 preview.classList.remove('hidden');
-                uploadArea.classList.add('upload-loading');
-                showNotification('Uploading and analyzing image...', 'info');
-
-                const user = getSession();
-                if (!user || !user.user_id) {
-                    showNotification('You must be logged in to upload.', 'error');
-                    uploadArea.classList.remove('upload-loading');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('file', file);
-
-                try {
-                    const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`, {
-                        method: 'POST',
-                        body: formData,
-                    });
-                     const data = await response.json();
-                     if(response.ok) {
-                          showNotification(data.message || 'Inventory updated!', 'success');
-                     } else {
-                          showNotification(data.detail || 'Upload failed.', 'error');
-                     }
-                } catch (error) {
-                     showNotification('An error occurred during upload.', 'error');
-                } finally {
-                    uploadArea.classList.remove('upload-loading');
-                }
+                // This version doesn't auto-upload, just shows preview
             }
         });
     }
