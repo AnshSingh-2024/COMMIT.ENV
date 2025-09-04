@@ -8,10 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Additional styles for the loader and animations */
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .loader {
             border: 4px solid rgba(255, 255, 255, 0.3);
             border-top-color: #ffffff;
@@ -20,9 +17,7 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -32,21 +27,12 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        'inter': ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { 'inter': ['Inter', 'sans-serif'] },
                     colors: {
                         'green': {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            200: '#bbf7d0',
-                            300: '#86efac',
-                            400: '#4ade80',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                            800: '#166534',
-                            900: '#14532d',
+                            50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
+                            400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d',
+                            800: '#166534', 900: '#14532d',
                         }
                     }
                 }
@@ -56,13 +42,13 @@
 </head>
 <body class="font-inter bg-white">
     <!-- Navigation -->
-    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-green-100 z-50">
+     <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-green-100 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0">
+                    <a href="index.html" class="flex-shrink-0">
                         <h1 class="text-2xl font-bold text-green-600">🌱 HomeHarvest AI</h1>
-                    </div>
+                    </a>
                 </div>
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-4">
@@ -73,23 +59,6 @@
                         <a href="about.html" class="nav-link text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium">About</a>
                     </div>
                 </div>
-                <div class="md:hidden">
-                    <button id="mobile-menu-button" class="text-gray-700 hover:text-green-600">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <!-- Mobile menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-green-100">
-            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="index.html" class="mobile-nav-link text-gray-700 block px-3 py-2 rounded-md text-base font-medium">Home</a>
-                <a href="kitchen.html" class="mobile-nav-link text-green-600 block px-3 py-2 rounded-md text-base font-medium">My Kitchen</a>
-                <a href="garden.html" class="mobile-nav-link text-gray-700 block px-3 py-2 rounded-md text-base font-medium">Smart Garden</a>
-                <a href="community.html" class="mobile-nav-link text-gray-700 block px-3 py-2 rounded-md text-base font-medium">Community</a>
-                <a href="about.html" class="mobile-nav-link text-gray-700 block px-3 py-2 rounded-md text-base font-medium">About</a>
             </div>
         </div>
     </nav>
@@ -103,8 +72,7 @@
                     <span class="text-green-600">AI Chef Assistant</span>
                 </h1>
                 <p class="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
-                    Your personal culinary companion powered by AI. Upload your pantry, get recipe suggestions,
-                    and discover what ingredients you need for your next delicious meal.
+                    Manage your pantry, set your preferences, and let our AI chef create delicious recipes just for you.
                 </p>
             </div>
         </div>
@@ -114,13 +82,11 @@
     <section class="py-16 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid md:grid-cols-2 gap-12">
-                <!-- Left Column: Pantry & Preferences -->
+                <!-- Left Column -->
                 <div>
-                     <!-- Upload Pantry Card -->
                     <div class="feature-card mb-8">
                          <h3 class="text-xl font-semibold text-gray-900 mb-3">Update Your Pantry</h3>
-                         <p class="text-gray-600 mb-4">Take a photo of your fridge or pantry to add items to your inventory.</p>
-                         <div id="pantry-upload-area" class="upload-area bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-green-400 transition-colors">
+                         <div id="pantry-upload-area" class="upload-area bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer">
                             <input type="file" id="pantry-upload" class="hidden" accept="image/*">
                             <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                             <p class="text-sm text-gray-500">Click to upload pantry photo</p>
@@ -128,48 +94,40 @@
                         <div id="pantry-preview" class="hidden mt-4 text-center">
                             <img id="pantry-image" class="w-full h-40 object-cover rounded-lg mb-4" alt="Pantry preview">
                             <div class="flex justify-center gap-4">
-                                <button id="pantry-confirm-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg">Confirm & Add</button>
-                                <button id="pantry-remove-btn" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-lg">Remove</button>
+                                <button id="pantry-confirm-btn" class="bg-green-600 text-white font-medium py-2 px-6 rounded-lg">Confirm & Add</button>
+                                <button id="pantry-remove-btn" class="bg-red-500 text-white font-medium py-2 px-6 rounded-lg">Remove</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Current Inventory Card -->
                     <div class="feature-card mb-8">
                         <h3 class="text-xl font-semibold text-gray-900 mb-4">Current Inventory</h3>
                         <div id="inventory-display" class="space-y-2 max-h-60 overflow-y-auto pr-2">
-                             <!-- Inventory items will be injected here by script.js -->
-                             <p class="text-gray-500">Your inventory is empty. Upload a photo to get started!</p>
+                             <p class="text-gray-500">Loading inventory...</p>
                         </div>
                     </div>
 
-                    <!-- Recipe Maker Preferences -->
                     <div class="feature-card">
                         <h3 class="text-xl font-semibold text-gray-900 mb-6">Recipe Preferences</h3>
                         <div class="grid grid-cols-2 gap-6">
-                            <!-- Difficulty -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
-                                <div id="difficulty-group" class="inline-flex rounded-lg border border-gray-200 overflow-hidden">
-                                    <button type="button" data-value="Easy" class="px-4 py-2 text-sm hover:bg-green-50 bg-green-600 text-white">Easy</button>
-                                    <button type="button" data-value="Medium" class="px-4 py-2 text-sm hover:bg-green-50 border-l border-gray-200">Medium</button>
-                                    <button type="button" data-value="Hard" class="px-4 py-2 text-sm hover:bg-green-50 border-l border-gray-200">Hard</button>
+                                <div id="difficulty-group" class="inline-flex rounded-lg border">
+                                    <button type="button" data-value="Easy" class="px-4 py-2 text-sm bg-green-600 text-white">Easy</button>
+                                    <button type="button" data-value="Medium" class="px-4 py-2 text-sm border-l">Medium</button>
+                                    <button type="button" data-value="Hard" class="px-4 py-2 text-sm border-l">Hard</button>
                                 </div>
                             </div>
-
-                             <!-- Serving Size -->
                             <div>
                                 <label for="servings" class="block text-sm font-medium text-gray-700 mb-2">Serving Size</label>
                                 <div class="flex items-center space-x-2">
-                                    <button type="button" id="servings-decrement" class="px-3 py-2 bg-gray-100 rounded border border-gray-200">-</button>
-                                    <input id="servings" type="number" min="1" value="2" class="w-16 text-center border-gray-300 rounded-lg text-sm px-3 py-2" />
-                                    <button type="button" id="servings-increment" class="px-3 py-2 bg-gray-100 rounded border border-gray-200">+</button>
+                                    <button type="button" id="servings-decrement" class="px-3 py-2 bg-gray-100 rounded border">-</button>
+                                    <input id="servings" type="number" min="1" value="2" class="w-16 text-center border-gray-300 rounded-lg text-sm" />
+                                    <button type="button" id="servings-increment" class="px-3 py-2 bg-gray-100 rounded border">+</button>
                                 </div>
                             </div>
-
-                             <!-- Time Available -->
                             <div>
-                                <label for="time-available" class="block text-sm font-medium text-gray-700 mb-2">Time available</label>
+                                <label for="time-available" class="block text-sm font-medium text-gray-700 mb-2">Time</label>
                                 <select id="time-available" class="w-full border-gray-300 rounded-lg text-sm">
                                     <option value="15">15 min</option>
                                     <option value="30" selected>30 min</option>
@@ -178,51 +136,47 @@
                                     <option value="90">90+ min</option>
                                 </select>
                             </div>
-
-                             <!-- Diet Preference -->
                             <div>
-                                <label for="diet-display" class="block text-sm font-medium text-gray-700 mb-2">Your Diet</label>
-                                <span id="diet-display" class="text-sm font-medium text-gray-700 bg-gray-100 px-3 py-2 rounded">Loading...</span>
+                                <label for="diet-preference-selector" class="block text-sm font-medium text-gray-700 mb-2">Your Diet</label>
+                                <select id="diet-preference-selector" class="w-full border-gray-300 rounded-lg text-sm">
+                                    <option>Veg</option>
+                                    <option>Non-Veg</option>
+                                    <option>Custom</option>
+                                </select>
                             </div>
-
-                            <!-- Cuisine (Optional) -->
                             <div class="col-span-2">
                                 <label for="cuisine" class="block text-sm font-medium text-gray-700 mb-2">Cuisine (Optional)</label>
-                                <input id="cuisine" type="text" placeholder="Italian, Indian, Mexican..." class="w-full border-gray-300 rounded-lg text-sm px-3 py-2" />
+                                <input id="cuisine" type="text" placeholder="Italian, Indian, etc." class="w-full border-gray-300 rounded-lg text-sm" />
                             </div>
-
-                            <!-- Open to purchase extras -->
                            <div class="col-span-2 flex items-center">
-                                <label class="inline-flex items-center cursor-pointer select-none">
+                                <label class="inline-flex items-center cursor-pointer">
                                     <input id="purchase-extras" type="checkbox" class="hidden">
-                                    <span class="w-10 h-6 flex items-center bg-gray-200 rounded-full p-1 transition-all">
-                                        <span class="bg-white w-4 h-4 rounded-full shadow transform transition-all"></span>
+                                    <span class="w-10 h-6 flex items-center bg-gray-200 rounded-full p-1">
+                                        <span class="bg-white w-4 h-4 rounded-full shadow transform"></span>
                                     </span>
-                                    <span class="ml-3 text-sm text-gray-700">Willing to shop for missing ingredients</span>
+                                    <span class="ml-3 text-sm text-gray-700">Willing to shop for ingredients</span>
                                 </label>
                             </div>
                         </div>
-
                         <div class="mt-8">
-                             <button id="generate-recipes" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors text-lg">
-                                Generate Recipe Suggestions
+                             <button id="generate-recipes" class="w-full bg-green-600 text-white font-medium py-3 rounded-lg text-lg">
+                                Generate Recipes
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Column: Recipe Suggestions -->
+                <!-- Right Column -->
                 <div>
                      <div class="text-left mb-8">
                         <h2 class="text-3xl font-bold text-gray-900 mb-2">AI-Generated Recipes</h2>
-                        <p class="text-gray-600">Here are some ideas based on your pantry and preferences.</p>
+                        <p class="text-gray-600">Your custom recipes will appear here.</p>
                     </div>
                     <div id="featured-recipes-container" class="space-y-6">
-                       <!-- Recipes will be injected here by script.js -->
                        <div class="text-center py-10 px-6 bg-gray-50 rounded-lg">
                            <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                           <h3 class="text-lg font-medium text-gray-800">Your recipes will appear here</h3>
-                           <p class="text-gray-500">Upload your pantry and set your preferences to get started!</p>
+                           <h3 class="text-lg font-medium text-gray-800">Ready to cook?</h3>
+                           <p class="text-gray-500">Upload your pantry and click "Generate Recipes" to start!</p>
                        </div>
                     </div>
                 </div>
@@ -230,25 +184,14 @@
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h3 class="text-2xl font-bold text-green-400 mb-4">🌱 HomeHarvest AI</h3>
-                <p class="text-gray-400 mb-6">From Garden to Table, Powered by AI</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Loading Animation Modal -->
+    <!-- Loading Modal -->
     <div id="loader-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50">
         <div class="text-center text-white">
             <div class="loader mx-auto"></div>
-            <p id="loader-text" class="mt-4 text-lg">Analyzing your pantry...</p>
+            <p id="loader-text" class="mt-4 text-lg">Analyzing...</p>
         </div>
     </div>
 
     <script src="script.js"></script>
 </body>
 </html>
-

@@ -3,114 +3,93 @@
 document.addEventListener('DOMContentLoaded', function() {
     const API_BASE_URL = 'http://127.0.0.1:8000';
 
-    // Run functions for the current page
+    // --- Page Router ---
     handleAuthStatus();
-    if (window.location.pathname.endsWith('login.html')) {
-        initializeLoginPage();
-    }
-    if (window.location.pathname.endsWith('kitchen.html')) {
-        initializeKitchenPage();
-    }
+    const path = window.location.pathname;
+    if (path.endsWith('login.html')) initializeLoginPage();
+    else if (path.endsWith('kitchen.html')) initializeKitchenPage();
+    else if (path.endsWith('account.html')) initializeAccountPage();
     initializeGlobalElements();
 
 
     // --- Global Initializations ---
     function initializeGlobalElements() {
-        // Mobile menu functionality
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-
         if (mobileMenuButton && mobileMenu) {
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
+            mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
         }
-
-        setupFileUpload('plant-upload', 'plant-preview', 'plant-image');
     }
 
     // --- Authentication & Session Management ---
     function handleAuthStatus() {
         const user = getSession();
-        const nav = document.querySelector('nav');
-
-        if (user && user.user_id) { // User is logged in
+        if (user && user.user_id) {
             if (window.location.pathname.endsWith('login.html')) {
                 window.location.href = 'index.html';
                 return;
             }
-            if (nav) {
-                // Remove login button and add user menu
-                const loginDesktop = document.getElementById('login-nav-link');
-                if(loginDesktop) loginDesktop.remove();
-
-                const loginMobile = document.getElementById('mobile-login-nav-link');
-                if(loginMobile) loginMobile.remove();
-
-
-                let userMenu = nav.querySelector('#user-menu');
-                if (!userMenu) {
-                    const navItems = nav.querySelector('.hidden.md\\:block .flex');
-                    if (navItems) {
-                        const userMenuHTML = `
-                            <div id="user-menu" class="relative">
-                                <button id="user-menu-button" class="ml-4 flex items-center space-x-2">
-                                    <span class="text-gray-700 font-medium">${user.name}</span>
-                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                </button>
-                                <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
-                                    <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
-                                </div>
-                            </div>`;
-                        navItems.insertAdjacentHTML('beforeend', userMenuHTML);
-
-                        document.getElementById('user-menu-button').addEventListener('click', () => {
-                            document.getElementById('user-dropdown').classList.toggle('hidden');
-                        });
-                        document.getElementById('logout-button').addEventListener('click', (e) => {
-                           e.preventDefault();
-                           logout();
-                        });
-                    }
-                }
-            }
-        } else { // User is not logged in
-            const protectedPages = ['/kitchen.html', '/garden.html', '/community.html'];
-            if (protectedPages.some(page => window.location.pathname.endsWith(page))) {
+            setupUserMenu(user.name);
+        } else {
+            const protectedPages = ['/kitchen.html', '/garden.html', '/community.html', '/account.html'];
+            if (protectedPages.some(page => window.location.pathname.includes(page))) {
                 window.location.href = 'login.html';
             }
         }
     }
 
-    function setSession(userData) {
-        localStorage.setItem('homeHarvestUser', JSON.stringify(userData));
+    function setupUserMenu(username) {
+        const navItems = document.querySelector('nav .hidden.md\\:block .flex');
+        if (!navItems || document.getElementById('user-menu')) return;
+
+        const userMenuHTML = `
+            <div id="user-menu" class="relative">
+                <button id="user-menu-button" class="ml-4 flex items-center space-x-2">
+                    <span class="text-gray-700 font-medium">${username}</span>
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
+                    <a href="account.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Account</a>
+                    <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                </div>
+            </div>`;
+        navItems.insertAdjacentHTML('beforeend', userMenuHTML);
+
+        document.getElementById('user-menu-button').addEventListener('click', () => {
+            document.getElementById('user-dropdown').classList.toggle('hidden');
+        });
+        document.getElementById('logout-button').addEventListener('click', (e) => {
+           e.preventDefault();
+           logout();
+        });
     }
 
-    function getSession() {
-        const userData = localStorage.getItem('homeHarvestUser');
-        return userData ? JSON.parse(userData) : null;
-    }
-
+    function setSession(userData) { localStorage.setItem('homeHarvestUser', JSON.stringify(userData)); }
+    function getSession() { return JSON.parse(localStorage.getItem('homeHarvestUser')); }
     function logout() {
-        localStorage.removeItem('homeHarvestUser');
-        sessionStorage.removeItem('lastGeneratedRecipes');
-        localStorage.removeItem('kitchenPreferences');
+        localStorage.clear();
+        sessionStorage.clear();
         window.location.href = 'login.html';
     }
 
     // --- Loading Animation ---
     function showLoader(text) {
-        document.getElementById('loader-text').textContent = text;
-        document.getElementById('loader-modal').classList.remove('hidden');
-        document.getElementById('loader-modal').classList.add('flex');
+        const loaderModal = document.getElementById('loader-modal');
+        if (loaderModal) {
+            document.getElementById('loader-text').textContent = text;
+            loaderModal.classList.add('flex');
+            loaderModal.classList.remove('hidden');
+        }
     }
-
     function hideLoader() {
-        document.getElementById('loader-modal').classList.add('hidden');
-        document.getElementById('loader-modal').classList.remove('flex');
+        const loaderModal = document.getElementById('loader-modal');
+        if (loaderModal) {
+            loaderModal.classList.add('hidden');
+            loaderModal.classList.remove('flex');
+        }
     }
 
-    // --- Page-Specific Initializers ---
+    // --- Page Initializers ---
     function initializeLoginPage() {
         const loginTab = document.getElementById('login-tab');
         const signupTab = document.getElementById('signup-tab');
@@ -118,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const signupForm = document.getElementById('signup-form');
         const formMessage = document.getElementById('form-message');
 
-        loginTab.addEventListener('click', () => {
+        loginTab?.addEventListener('click', () => {
             loginTab.classList.add('text-green-600', 'border-green-600');
             loginTab.classList.remove('text-gray-500');
             signupTab.classList.remove('text-green-600', 'border-green-600');
@@ -128,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formMessage.textContent = '';
         });
 
-        signupTab.addEventListener('click', () => {
+        signupTab?.addEventListener('click', () => {
             signupTab.classList.add('text-green-600', 'border-green-600');
             signupTab.classList.remove('text-gray-500');
             loginTab.classList.remove('text-green-600', 'border-green-600');
@@ -138,12 +117,11 @@ document.addEventListener('DOMContentLoaded', function() {
             formMessage.textContent = '';
         });
 
-        loginForm.addEventListener('submit', async (e) => {
+        loginForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             formMessage.textContent = 'Logging in...';
-
             try {
                 const response = await fetch(`${API_BASE_URL}/login`, {
                     method: 'POST',
@@ -151,20 +129,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ email, password }),
                 });
                 const data = await response.json();
-                if (response.ok) {
-                    setSession({ user_id: data.user_id, name: data.name });
-                    window.location.href = 'index.html';
-                } else {
-                    formMessage.textContent = data.detail || 'Login failed.';
-                    formMessage.classList.add('text-red-500');
-                }
+                if (!response.ok) throw new Error(data.detail);
+                setSession({ user_id: data.user_id, name: data.name });
+                window.location.href = 'kitchen.html';
             } catch (error) {
-                formMessage.textContent = 'An error occurred. Please try again.';
-                formMessage.classList.add('text-red-500');
+                 formMessage.textContent = error.message;
+                 formMessage.classList.add('text-red-500');
             }
         });
 
-        signupForm.addEventListener('submit', async (e) => {
+        signupForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('signup-name').value;
             const email = document.getElementById('signup-email').value;
@@ -179,18 +153,82 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ name, email, password, dietary_preference }),
                 });
                  const data = await response.json();
-                if (response.ok) {
-                    formMessage.textContent = 'Account created! Please log in.';
-                    formMessage.classList.remove('text-red-500');
-                    formMessage.classList.add('text-green-500');
-                    loginTab.click();
-                } else {
-                    formMessage.textContent = data.detail || 'Signup failed.';
-                     formMessage.classList.add('text-red-500');
-                }
+                if (!response.ok) throw new Error(data.detail);
+                formMessage.textContent = 'Account created! Please log in.';
+                formMessage.classList.remove('text-red-500');
+                formMessage.classList.add('text-green-500');
+                loginTab.click();
             } catch (error) {
-                formMessage.textContent = 'An error occurred. Please try again.';
-                 formMessage.classList.add('text-red-500');
+                formMessage.textContent = error.message;
+                formMessage.classList.add('text-red-500');
+            }
+        });
+    }
+
+    async function initializeAccountPage() {
+        const user = getSession();
+        if (!user) return;
+
+        const passwordForm = document.getElementById('password-form');
+        const dietForm = document.getElementById('diet-form');
+        const dietSelect = document.getElementById('diet-preference');
+        const passwordMessage = document.getElementById('password-message');
+        const dietMessage = document.getElementById('diet-message');
+
+        // Fetch and set current diet
+        try {
+            const response = await fetch(`${API_BASE_URL}/user/${user.user_id}`);
+            const data = await response.json();
+            if (response.ok) {
+                dietSelect.value = data.dietary_preference;
+            }
+        } catch (error) {
+            showNotification('Could not load your preferences.', 'error');
+        }
+
+        // Password form handler
+        passwordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            passwordMessage.textContent = 'Updating...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/${user.user_id}/update`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+                showNotification(data.message, 'success');
+                passwordForm.reset();
+                passwordMessage.textContent = '';
+            } catch (error) {
+                showNotification(error.message, 'error');
+                passwordMessage.textContent = '';
+            }
+        });
+
+        // Diet form handler
+        dietForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newDiet = dietSelect.value;
+            dietMessage.textContent = 'Saving...';
+
+             try {
+                const response = await fetch(`${API_BASE_URL}/user/${user.user_id}/update`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dietary_preference: newDiet }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+                showNotification(data.message, 'success');
+                dietMessage.textContent = '';
+            } catch (error) {
+                showNotification(error.message, 'error');
+                dietMessage.textContent = '';
             }
         });
     }
@@ -207,10 +245,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const servingsInc = document.getElementById('servings-increment');
         const purchaseExtras = document.getElementById('purchase-extras');
         const cuisineInput = document.getElementById('cuisine');
-        const dietDisplay = document.getElementById('diet-display');
+        const dietSelector = document.getElementById('diet-preference-selector');
         const generateBtn = document.getElementById('generate-recipes');
 
-        // --- Pantry Upload Elements ---
         const pantryUploadInput = document.getElementById('pantry-upload');
         const pantryUploadArea = document.getElementById('pantry-upload-area');
         const pantryPreview = document.getElementById('pantry-preview');
@@ -219,10 +256,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const pantryRemoveBtn = document.getElementById('pantry-remove-btn');
         let currentPantryFile = null;
 
-        // --- Pantry Upload Logic ---
+        // --- Pantry Upload ---
         pantryUploadArea.addEventListener('click', () => pantryUploadInput.click());
-
-        pantryUploadInput.addEventListener('change', (e) => {
+        pantryUploadInput.addEventListener('change', e => {
             const file = e.target.files[0];
             if (file) {
                 currentPantryFile = file;
@@ -231,61 +267,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 pantryUploadArea.classList.add('hidden');
             }
         });
-
         pantryRemoveBtn.addEventListener('click', () => {
             currentPantryFile = null;
-            pantryUploadInput.value = ''; // Clear the file input
+            pantryUploadInput.value = '';
             pantryPreview.classList.add('hidden');
             pantryUploadArea.classList.remove('hidden');
         });
-
         pantryConfirmBtn.addEventListener('click', async () => {
             if (!currentPantryFile) return;
-
             const formData = new FormData();
             formData.append('file', currentPantryFile);
-
             showLoader('Analyzing your pantry...');
             try {
-                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`, {
-                    method: 'POST',
-                    body: formData,
-                });
+                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`, { method: 'POST', body: formData });
                 const data = await response.json();
-                if (response.ok) {
-                    showNotification(data.message || 'Inventory updated!', 'success');
-                    fetchAndDisplayInventory(); // Refresh inventory display
-                } else {
-                    showNotification(data.detail || 'Upload failed.', 'error');
-                }
-            } catch (error) {
-                showNotification('An error occurred during upload.', 'error');
-            } finally {
+                if (!response.ok) throw new Error(data.detail);
+                showNotification(data.message || 'Inventory updated!', 'success');
+                fetchAndDisplayInventory();
+            } catch (error) { showNotification(error.message, 'error'); }
+            finally {
                 hideLoader();
-                pantryRemoveBtn.click(); // Reset the upload area
+                pantryRemoveBtn.click();
             }
         });
 
-        // --- Functions to save and load preferences ---
+        // --- Preferences Logic ---
         function savePreferences() {
             const prefs = {
                 difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value || 'Easy',
-                time: timeSelect.value,
-                servings: servingsInput.value,
-                purchase: purchaseExtras.checked,
-                cuisine: cuisineInput.value
+                time: timeSelect.value, servings: servingsInput.value,
+                purchase: purchaseExtras.checked, cuisine: cuisineInput.value
             };
             localStorage.setItem('kitchenPreferences', JSON.stringify(prefs));
         }
-
         function loadPreferences() {
             const prefs = JSON.parse(localStorage.getItem('kitchenPreferences'));
             if (!prefs) return;
             difficultyGroup.querySelectorAll('button').forEach(b => {
                 b.classList.remove('bg-green-600', 'text-white');
-                if (b.dataset.value === prefs.difficulty) {
-                     b.classList.add('bg-green-600', 'text-white');
-                }
+                if (b.dataset.value === prefs.difficulty) b.classList.add('bg-green-600', 'text-white');
             });
             timeSelect.value = prefs.time;
             servingsInput.value = prefs.servings;
@@ -293,63 +313,49 @@ document.addEventListener('DOMContentLoaded', function() {
             purchaseExtras.checked = prefs.purchase;
             updatePurchaseToggleUI();
         }
-
         function updatePurchaseToggleUI() {
-            const toggleTrack = purchaseExtras.parentElement.querySelector('span');
-            const toggleKnob = toggleTrack.querySelector('span');
-            if (purchaseExtras.checked) {
-                toggleTrack.classList.remove('bg-gray-200');
-                toggleTrack.classList.add('bg-green-500');
-                toggleKnob.style.transform = 'translateX(16px)';
-            } else {
-                toggleTrack.classList.add('bg-gray-200');
-                toggleTrack.classList.remove('bg-green-500');
-                toggleKnob.style.transform = 'translateX(0px)';
-            }
+            const knob = purchaseExtras.parentElement.querySelector('span > span');
+            knob.style.transform = purchaseExtras.checked ? 'translateX(16px)' : 'translateX(0px)';
         }
-
-        // --- Event Listeners for Preferences ---
-        difficultyGroup.addEventListener('click', (e) => {
+        difficultyGroup.addEventListener('click', e => {
             const btn = e.target.closest('button[data-value]');
             if (!btn) return;
             difficultyGroup.querySelectorAll('button').forEach(b => b.classList.remove('bg-green-600', 'text-white'));
             btn.classList.add('bg-green-600', 'text-white');
             savePreferences();
         });
+        servingsDec.addEventListener('click', () => { if (servingsInput.value > 1) servingsInput.value--; savePreferences(); });
+        servingsInc.addEventListener('click', () => { servingsInput.value++; savePreferences(); });
+        purchaseExtras.addEventListener('change', () => { updatePurchaseToggleUI(); savePreferences(); });
+        [timeSelect, servingsInput, cuisineInput, dietSelector].forEach(el => el.addEventListener('change', savePreferences));
 
-        servingsDec.addEventListener('click', () => {
-            const currentVal = parseInt(servingsInput.value);
-            if (currentVal > 1) servingsInput.value = currentVal - 1;
-            savePreferences();
+        // --- Diet Selector Logic ---
+        dietSelector.addEventListener('change', async () => {
+            const newDiet = dietSelector.value;
+            showNotification('Saving your preference...', 'info');
+             try {
+                const response = await fetch(`${API_BASE_URL}/user/${user.user_id}/update`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dietary_preference: newDiet }),
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+                showNotification('Diet preference saved!', 'success');
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
         });
 
-        servingsInc.addEventListener('click', () => {
-             servingsInput.value = parseInt(servingsInput.value) + 1;
-             savePreferences();
-        });
-
-        purchaseExtras.addEventListener('change', () => {
-             updatePurchaseToggleUI();
-             savePreferences();
-        });
-
-        [timeSelect, servingsInput, cuisineInput].forEach(el => {
-            el.addEventListener('change', savePreferences);
-        });
-
-
-        // --- Generate Recipes Button ---
+        // --- Recipe Generation ---
         generateBtn.addEventListener('click', async () => {
             savePreferences();
             const payload = {
-                Difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value || 'Medium',
-                TimeAvailable: parseInt(timeSelect.value, 10),
-                Shopping: purchaseExtras.checked,
-                Cuisine: cuisineInput.value || 'Any',
-                Serving: parseInt(servingsInput.value, 10),
-                Diet: dietDisplay.textContent || 'Veg'
+                Difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value,
+                TimeAvailable: parseInt(timeSelect.value), Shopping: purchaseExtras.checked,
+                Cuisine: cuisineInput.value || 'Any', Serving: parseInt(servingsInput.value),
+                Diet: dietSelector.value
             };
-
             showLoader('Generating your recipes...');
              try {
                 const response = await fetch(`${API_BASE_URL}/recipes/${user.user_id}`, {
@@ -358,149 +364,74 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify(payload),
                 });
                 const data = await response.json();
-                if(response.ok) {
-                     displayRecipes(data.Recipes);
-                     sessionStorage.setItem('lastGeneratedRecipes', JSON.stringify(data.Recipes));
-                } else {
-                    showNotification(data.detail || 'Could not generate recipes. Is your pantry empty?', 'error');
-                }
-             } catch(error) {
-                 showNotification('An error occurred while generating recipes.', 'error');
-             } finally {
-                hideLoader();
-             }
+                if (!response.ok) throw new Error(data.detail);
+                displayRecipes(data.Recipes);
+                sessionStorage.setItem('lastGeneratedRecipes', JSON.stringify(data.Recipes));
+             } catch(error) { showNotification(error.message, 'error'); }
+             finally { hideLoader(); }
         });
 
-        // --- Inventory Display Function ---
+        // --- Inventory Display ---
         async function fetchAndDisplayInventory() {
-            const inventoryContainer = document.getElementById('inventory-display');
+            const container = document.getElementById('inventory-display');
             try {
                 const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`);
-                if (!response.ok) {
-                    inventoryContainer.innerHTML = `<p class="text-gray-500">Could not load inventory.</p>`;
+                const data = await response.json();
+                if (!response.ok || !data.items || data.items.length === 0) {
+                    container.innerHTML = `<p class="text-gray-500">Your inventory is empty.</p>`;
                     return;
                 }
-                const inventoryData = await response.json();
-                if (inventoryData.items && inventoryData.items.length > 0) {
-                    inventoryContainer.innerHTML = ''; // Clear existing
-                    inventoryData.items.forEach(item => {
-                        const itemEl = document.createElement('div');
-                        itemEl.className = 'flex justify-between items-center bg-green-50 p-2 rounded-lg animate-fade-in';
-                        itemEl.innerHTML = `
-                            <span class="text-green-800 font-medium">${item.item_name}</span>
-                            <span class="bg-green-200 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">${item.quantity}</span>
-                        `;
-                        inventoryContainer.appendChild(itemEl);
-                    });
-                } else {
-                     inventoryContainer.innerHTML = `<p class="text-gray-500">Your inventory is empty. Upload a photo to get started!</p>`;
-                }
-            } catch (error) {
-                 inventoryContainer.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`;
-            }
+                container.innerHTML = data.items.map(item => `
+                    <div class="flex justify-between items-center bg-green-50 p-2 rounded-lg animate-fade-in">
+                        <span class="text-green-800 font-medium">${item.item_name}</span>
+                        <span class="bg-green-200 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">${item.quantity}</span>
+                    </div>`).join('');
+            } catch (error) { container.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`; }
         }
 
-        // --- Initial Page Load Logic ---
+        // --- Initial Page Load ---
         loadPreferences();
         const savedRecipes = sessionStorage.getItem('lastGeneratedRecipes');
-        if (savedRecipes) {
-            displayRecipes(JSON.parse(savedRecipes));
-        }
-
+        if (savedRecipes) displayRecipes(JSON.parse(savedRecipes));
         fetchAndDisplayInventory();
-
         try {
             const response = await fetch(`${API_BASE_URL}/user/${user.user_id}`);
-            if(response.ok) {
-                const userData = await response.json();
-                dietDisplay.textContent = userData.dietary_preference || 'Not Set';
-                 dietDisplay.classList.remove('bg-gray-100', 'text-gray-700');
-                 dietDisplay.classList.add('bg-green-100', 'text-green-700');
-            } else {
-                 dietDisplay.textContent = 'Error';
-            }
-        } catch (error) {
-            dietDisplay.textContent = 'Error loading diet';
-        }
+            const userData = await response.json();
+            if (response.ok) dietSelector.value = userData.dietary_preference;
+        } catch (error) { console.error("Could not load user diet preference."); }
     }
-
 
     // --- Helper Functions ---
-    // Generic file upload for other pages (like Smart Garden)
-    function setupFileUpload(inputId, previewId, imageId) {
-        const uploadInput = document.getElementById(inputId);
-        if (!uploadInput) return;
-
-        const preview = document.getElementById(previewId);
-        const image = document.getElementById(imageId);
-        const uploadArea = uploadInput.closest('.upload-area');
-
-        uploadArea.addEventListener('click', () => uploadInput.click());
-        uploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                image.src = URL.createObjectURL(file);
-                preview.classList.remove('hidden');
-                // This version doesn't auto-upload, just shows preview
-            }
-        });
-    }
-
     function displayRecipes(recipes) {
         const container = document.getElementById('featured-recipes-container');
-        if (!container) return;
-
-        container.innerHTML = '';
         if (!recipes || recipes.length === 0) {
-            container.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 rounded-lg"><p class="text-gray-600">No recipes found based on your inventory and preferences.</p></div>`;
+            container.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 rounded-lg"><p class="text-gray-600">No recipes found.</p></div>`;
             return;
         }
-
-        recipes.forEach(recipe => {
-            const recipeCard = `
-                <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-100 animate-fade-in">
-                    <h3 class="text-xl font-semibold text-gray-900">${recipe.name}</h3>
-                    <p class="text-sm text-gray-600">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
-                    <p class="text-gray-600 my-2">${recipe.description}</p>
-                    <div>
-                        <h4 class="font-medium text-gray-900 mt-4">Ingredients:</h4>
-                        <ul class="text-sm text-gray-600 list-disc list-inside space-y-1">
-                            ${recipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}
-                        </ul>
-                        <h4 class="font-medium text-gray-900 mt-4">Instructions:</h4>
-                         <ol class="text-sm text-gray-600 list-decimal list-inside space-y-1">
-                            ${recipe.instructions.map(step => `<li>${step}</li>`).join('')}
-                        </ol>
-                    </div>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', recipeCard);
-        });
+        container.innerHTML = recipes.map(recipe => `
+            <div class="bg-white rounded-xl p-6 shadow-lg border animate-fade-in">
+                <h3 class="text-xl font-semibold text-gray-900">${recipe.name}</h3>
+                <p class="text-sm text-gray-600">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
+                <p class="text-gray-600 my-2">${recipe.description}</p>
+                <h4 class="font-medium text-gray-900 mt-4">Ingredients:</h4>
+                <ul class="text-sm list-disc list-inside space-y-1">${recipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}</ul>
+                <h4 class="font-medium text-gray-900 mt-4">Instructions:</h4>
+                <ol class="text-sm list-decimal list-inside space-y-1">${recipe.instructions.map(step => `<li>${step}</li>`).join('')}</ol>
+            </div>`).join('');
         showNotification('Recipes generated successfully!', 'success');
     }
-
     function showNotification(message, type = 'info') {
         const existing = document.querySelector('.notification');
         if (existing) existing.remove();
-
         const notification = document.createElement('div');
-        let bgColor;
-        switch (type) {
-            case 'success': bgColor = 'bg-green-600'; break;
-            case 'error': bgColor = 'bg-red-600'; break;
-            default: bgColor = 'bg-blue-600';
-        }
-        notification.className = `notification ${bgColor} text-white fixed top-20 right-4 p-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300`;
+        const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600' };
+        notification.className = `${colors[type]} text-white fixed top-20 right-4 p-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform`;
         notification.textContent = message;
         document.body.appendChild(notification);
-
         setTimeout(() => notification.classList.remove('translate-x-full'), 100);
         setTimeout(() => {
             notification.classList.add('translate-x-full');
             setTimeout(() => notification.remove(), 300);
         }, 5000);
     }
-
-    console.log('HomeHarvest AI - Website loaded successfully! 🌱');
 });
-
