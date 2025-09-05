@@ -91,7 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Page Initializers ---
     function initializeLoginPage() {
-        // This function is now complete and correct
         const loginTab = document.getElementById('login-tab');
         const signupTab = document.getElementById('signup-tab');
         const loginForm = document.getElementById('login-form');
@@ -246,6 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dietSelector = document.getElementById('diet-preference-selector');
         const generateBtn = document.getElementById('generate-recipes');
         const inventoryContainer = document.getElementById('inventory-display');
+        const recipesContainer = document.getElementById('featured-recipes-container');
 
         const pantryUploadInput = document.getElementById('pantry-upload');
         const pantryUploadArea = document.getElementById('pantry-upload-area');
@@ -254,6 +254,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const pantryConfirmBtn = document.getElementById('pantry-confirm-btn');
         const pantryRemoveBtn = document.getElementById('pantry-remove-btn');
         let currentPantryFile = null;
+
+        // Initialize Recipe Modal
+        initializeRecipeModal();
+        let currentRecipes = [];
 
         // --- Pantry Upload ---
         pantryUploadArea.addEventListener('click', () => pantryUploadInput.click());
@@ -306,12 +310,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
-                fetchAndDisplayInventory(); // Refresh the list
+                fetchAndDisplayInventory();
             } catch (error) {
                 showNotification(error.message, 'error');
             }
         });
-
 
         // --- Preferences Logic ---
         function savePreferences() {
@@ -368,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // --- Recipe Generation ---
+        // --- Recipe Generation & Display ---
         generateBtn.addEventListener('click', async () => {
             savePreferences();
             const payload = {
@@ -386,11 +389,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
-                displayRecipes(data.Recipes);
-                sessionStorage.setItem('lastGeneratedRecipes', JSON.stringify(data.Recipes));
+                currentRecipes = data.Recipes; // Store recipes
+                displayRecipes(currentRecipes);
+                sessionStorage.setItem('lastGeneratedRecipes', JSON.stringify(currentRecipes));
              } catch(error) { showNotification(error.message, 'error'); }
              finally { hideLoader(); }
         });
+
+        function displayRecipes(recipes) {
+            if (!recipes || recipes.length === 0) {
+                recipesContainer.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 rounded-lg"><p class="text-gray-600">No recipes found.</p></div>`;
+                return;
+            }
+            recipesContainer.innerHTML = recipes.map((recipe, index) => `
+                <div class="bg-white rounded-xl p-6 shadow-lg border animate-fade-in cursor-pointer hover:shadow-xl hover:border-green-500 transition-all" data-recipe-index="${index}">
+                    <h3 class="text-xl font-semibold text-gray-900 pointer-events-none">${recipe.name}</h3>
+                    <p class="text-sm text-gray-600 pointer-events-none">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
+                    <p class="text-gray-600 my-2 pointer-events-none">${recipe.description}</p>
+                </div>`).join('');
+        }
 
         // --- Inventory Display ---
         async function fetchAndDisplayInventory() {
@@ -413,10 +430,56 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (error) { inventoryContainer.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`; }
         }
 
+        // --- Recipe Modal Logic ---
+        function initializeRecipeModal() {
+            const modal = document.getElementById('recipe-modal');
+            const closeBtn = document.getElementById('recipe-modal-close');
+            let savedScrollPosition = 0;
+
+            recipesContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('[data-recipe-index]');
+                if (card) {
+                    const recipeIndex = parseInt(card.dataset.recipeIndex, 10);
+                    const recipe = currentRecipes[recipeIndex];
+                    if (recipe) {
+                        // Populate and show modal
+                        document.getElementById('recipe-modal-title').textContent = recipe.name;
+                        document.getElementById('recipe-modal-description').textContent = recipe.description;
+                        document.getElementById('recipe-modal-prep-time').textContent = `Prep: ${recipe.prep_time_minutes} min`;
+                        document.getElementById('recipe-modal-cook-time').textContent = `Cook: ${recipe.cook_time_minutes} min`;
+                        document.getElementById('recipe-modal-ingredients').innerHTML = recipe.ingredients.map(ing => `<li>${ing}</li>`).join('');
+                        document.getElementById('recipe-modal-instructions').innerHTML = recipe.instructions.map(step => `<li>${step}</li>`).join('');
+
+                        savedScrollPosition = window.scrollY;
+                        document.body.classList.add('modal-open');
+                        modal.classList.remove('hidden');
+                        modal.classList.add('flex');
+                    }
+                }
+            });
+
+            const closeModal = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.classList.remove('modal-open');
+                window.scrollTo(0, savedScrollPosition);
+            };
+
+            closeBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+        }
+
         // --- Initial Page Load ---
         loadPreferences();
-        const savedRecipes = sessionStorage.getItem('lastGeneratedRecipes');
-        if (savedRecipes) displayRecipes(JSON.parse(savedRecipes));
+        const savedRecipes = JSON.parse(sessionStorage.getItem('lastGeneratedRecipes'));
+        if (savedRecipes) {
+            currentRecipes = savedRecipes;
+            displayRecipes(currentRecipes);
+        }
         fetchAndDisplayInventory();
         try {
             const response = await fetch(`${API_BASE_URL}/user/${user.user_id}`);
@@ -426,24 +489,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Helper Functions ---
-    function displayRecipes(recipes) {
-        const container = document.getElementById('featured-recipes-container');
-        if (!recipes || recipes.length === 0) {
-            container.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 rounded-lg"><p class="text-gray-600">No recipes found.</p></div>`;
-            return;
-        }
-        container.innerHTML = recipes.map(recipe => `
-            <div class="bg-white rounded-xl p-6 shadow-lg border animate-fade-in">
-                <h3 class="text-xl font-semibold text-gray-900">${recipe.name}</h3>
-                <p class="text-sm text-gray-600">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
-                <p class="text-gray-600 my-2">${recipe.description}</p>
-                <h4 class="font-medium text-gray-900 mt-4">Ingredients:</h4>
-                <ul class="text-sm list-disc list-inside space-y-1">${recipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}</ul>
-                <h4 class="font-medium text-gray-900 mt-4">Instructions:</h4>
-                <ol class="text-sm list-decimal list-inside space-y-1">${recipe.instructions.map(step => `<li>${step}</li>`).join('')}</ol>
-            </div>`).join('');
-        showNotification('Recipes generated successfully!', 'success');
-    }
     function showNotification(message, type = 'info') {
         const existing = document.querySelector('.notification');
         if (existing) existing.remove();
@@ -458,4 +503,4 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => notification.remove(), 300);
         }, 5000);
     }
-})
+});

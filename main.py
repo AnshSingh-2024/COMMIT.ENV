@@ -159,7 +159,7 @@ async def update_inventory_from_image(user_id: str, file: UploadFile = File(...)
             new_inventory = UserInventory(user_id=user_id, items=new_items)
             await inventory_collection.insert_one(new_inventory.model_dump(by_alias=True))
 
-        return JSONResponse(content={"message": f"Inventory updated for {user_id}.", "items_processed": len(new_items)})
+        return JSONResponse(content={"message": f"Inventory updated successfully", "items_processed": len(new_items)})
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")

@@ -22,6 +22,10 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* Style for when the modal is open */
+        .modal-open {
+            overflow: hidden;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -41,7 +45,8 @@
     </script>
 </head>
 <body class="font-inter bg-white">
-    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-green-100 z-50">
+    <!-- Navigation -->
+     <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-green-100 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
@@ -62,6 +67,7 @@
         </div>
     </nav>
 
+    <!-- Hero Section -->
     <section class="pt-20 pb-16 bg-gradient-to-br from-green-50 to-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
@@ -76,9 +82,11 @@
         </div>
     </section>
 
+    <!-- My Kitchen Section -->
     <section class="py-16 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid md:grid-cols-2 gap-12">
+                <!-- Left Column -->
                 <div>
                     <div class="feature-card mb-8">
                          <h3 class="text-xl font-semibold text-gray-900 mb-3">Update Your Pantry</h3>
@@ -162,6 +170,7 @@
                     </div>
                 </div>
 
+                <!-- Right Column -->
                 <div>
                      <div class="text-left mb-8">
                         <h2 class="text-3xl font-bold text-gray-900 mb-2">AI-Generated Recipes</h2>
@@ -179,12 +188,42 @@
         </div>
     </section>
 
+    <!-- Loading Modal -->
     <div id="loader-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50">
         <div class="text-center text-white">
             <div class="loader mx-auto"></div>
             <p id="loader-text" class="mt-4 text-lg">Analyzing...</p>
         </div>
     </div>
+
+    <!-- Recipe Modal -->
+    <div id="recipe-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-[60] p-4 animate-fade-in">
+        <div id="recipe-modal-content" class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h2 id="recipe-modal-title" class="text-2xl font-bold text-gray-800">Recipe Title</h2>
+                <button id="recipe-modal-close" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <p id="recipe-modal-description" class="text-gray-600 mb-4"></p>
+                <div class="flex items-center text-sm text-gray-500 mb-6">
+                    <span id="recipe-modal-prep-time"></span>
+                    <span class="mx-2">|</span>
+                    <span id="recipe-modal-cook-time"></span>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800 mb-2">Ingredients</h4>
+                        <ul id="recipe-modal-ingredients" class="text-gray-700 list-disc list-inside space-y-1"></ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800 mb-2">Instructions</h4>
+                        <ol id="recipe-modal-instructions" class="text-gray-700 list-decimal list-inside space-y-2"></ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <script src="script.js"></script>
 </body>
