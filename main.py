@@ -1,6 +1,7 @@
 import os
 import io
 import json
+import requests
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -18,7 +19,8 @@ from models import (
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
+AMAZON_SEARCH_API_URL=os.getenv("AMAZON_SEARCH_API_URL")
+AMAZON_CART_BASE_URL=os.getenv("AMAZON_CART_BASE_URL")
 if not GOOGLE_API_KEY or not MONGO_URI:
     raise ValueError("API keys not set. Please create a .env file with GOOGLE_API_KEY and MONGO_URI.")
 
@@ -219,3 +221,27 @@ async def get_recipes(user_id: str, payload: RecipePayload):
     response = model.generate_content(prompt, stream=False)
     json_string = response.text.strip().replace("```json", "").replace("```", "")
     return json.loads(json_string)
+
+@app.post("/shopping",summary = "Returns a link with all the items required")
+async def get_shopping(items : dict):
+    #Items structure={"item_name":Quantity}
+    url = AMAZON_SEARCH_API_URL
+    headers = {
+        "x-rapidapi-key": "e76a771959msh5c491436acc9dc7p1844bbjsn7b0d863262db",
+        "x-rapidapi-host": "realtime-amazon-data.p.rapidapi.com"
+    }
+    ASINsFound=[]
+    i=1
+    items=items["additionalProp1"]
+    print(items)
+    print(type(items))
+    for itemName in items.keys():
+        querystring = {"keyword": itemName, "country": "in", "page": "1", "sort": "Featured"}
+        response = requests.get(url, headers=headers, params=querystring)
+        response=response.json()
+        asin=f"&ASIN.{i}="+(response["details"][0]["asin"])+f"&Quantity.{i}="+str(items[itemName])
+        print(items[itemName])
+        i+=1
+        ASINsFound.append(asin)
+    cart_url=AMAZON_CART_BASE_URL+''.join(ASINsFound)
+    return {"cart_url": cart_url}
