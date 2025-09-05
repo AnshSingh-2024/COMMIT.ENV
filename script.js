@@ -1,4 +1,5 @@
 // HomeHarvest AI - JavaScript Functionality
+
 document.addEventListener('DOMContentLoaded', function() {
     const API_BASE_URL = 'http://127.0.0.1:8000';
 
@@ -90,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Page Initializers ---
     function initializeLoginPage() {
+        // This function is now complete and correct
         const loginTab = document.getElementById('login-tab');
         const signupTab = document.getElementById('signup-tab');
         const loginForm = document.getElementById('login-form');
@@ -174,7 +176,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const passwordMessage = document.getElementById('password-message');
         const dietMessage = document.getElementById('diet-message');
 
-        // Fetch and set current diet
         try {
             const response = await fetch(`${API_BASE_URL}/user/${user.user_id}`);
             const data = await response.json();
@@ -185,7 +186,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification('Could not load your preferences.', 'error');
         }
 
-        // Password form handler
         passwordForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const currentPassword = document.getElementById('current-password').value;
@@ -209,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Diet form handler
         dietForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const newDiet = dietSelect.value;
@@ -246,6 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cuisineInput = document.getElementById('cuisine');
         const dietSelector = document.getElementById('diet-preference-selector');
         const generateBtn = document.getElementById('generate-recipes');
+        const inventoryContainer = document.getElementById('inventory-display');
 
         const pantryUploadInput = document.getElementById('pantry-upload');
         const pantryUploadArea = document.getElementById('pantry-upload-area');
@@ -290,6 +290,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        // --- Manual Inventory Update ---
+        inventoryContainer.addEventListener('click', async (e) => {
+            const button = e.target.closest('button[data-item-name]');
+            if (!button) return;
+
+            const itemName = button.dataset.itemName;
+            const change = parseInt(button.dataset.change, 10);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}/update-item`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_name: itemName, change: change })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+                fetchAndDisplayInventory(); // Refresh the list
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        });
+
+
         // --- Preferences Logic ---
         function savePreferences() {
             const prefs = {
@@ -328,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function() {
         purchaseExtras.addEventListener('change', () => { updatePurchaseToggleUI(); savePreferences(); });
         [timeSelect, servingsInput, cuisineInput, dietSelector].forEach(el => el.addEventListener('change', savePreferences));
 
-        // --- Diet Selector Logic ---
         dietSelector.addEventListener('change', async () => {
             const newDiet = dietSelector.value;
             showNotification('Saving your preference...', 'info');
@@ -372,20 +394,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // --- Inventory Display ---
         async function fetchAndDisplayInventory() {
-            const container = document.getElementById('inventory-display');
             try {
                 const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`);
                 const data = await response.json();
                 if (!response.ok || !data.items || data.items.length === 0) {
-                    container.innerHTML = `<p class="text-gray-500">Your inventory is empty.</p>`;
+                    inventoryContainer.innerHTML = `<p class="text-gray-500">Your inventory is empty.</p>`;
                     return;
                 }
-                container.innerHTML = data.items.map(item => `
+                inventoryContainer.innerHTML = data.items.map(item => `
                     <div class="flex justify-between items-center bg-green-50 p-2 rounded-lg animate-fade-in">
-                        <span class="text-green-800 font-medium">${item.item_name}</span>
-                        <span class="bg-green-200 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">${item.quantity}</span>
+                        <span class="text-green-800 font-medium flex-1 mr-2">${item.item_name}</span>
+                        <div class="flex items-center">
+                            <button data-item-name="${item.item_name}" data-change="-1" class="bg-green-200 hover:bg-green-300 text-green-800 font-bold w-6 h-6 rounded-full flex items-center justify-center">-</button>
+                            <span class="w-10 text-center font-semibold">${item.quantity}</span>
+                            <button data-item-name="${item.item_name}" data-change="1" class="bg-green-200 hover:bg-green-300 text-green-800 font-bold w-6 h-6 rounded-full flex items-center justify-center">+</button>
+                        </div>
                     </div>`).join('');
-            } catch (error) { container.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`; }
+            } catch (error) { inventoryContainer.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`; }
         }
 
         // --- Initial Page Load ---
@@ -433,4 +458,4 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => notification.remove(), 300);
         }, 5000);
     }
-});
+})

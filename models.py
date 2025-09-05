@@ -72,3 +72,8 @@ class PasswordUpdate(BaseModel):
 
 class PreferenceUpdate(BaseModel):
     dietary_preference: str
+
+
+class InventoryItemUpdate(BaseModel):
+    item_name: str
+    change: int  # Will be 1 or -1

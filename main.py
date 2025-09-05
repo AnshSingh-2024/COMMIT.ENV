@@ -11,13 +11,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from PIL import Image
 from models import (
     UserInventory, InventoryItem, RecipePayload, User, UserCreate, UserLogin,
-    get_password_hash, verify_password, PasswordUpdate, PreferenceUpdate
+    get_password_hash, verify_password, PasswordUpdate, PreferenceUpdate, InventoryItemUpdate
 )
 
 # --- Configuration & Initialization ---
 load_dotenv()
-MONGO_URI = os.getenv("mongoURI")
-GOOGLE_API_KEY = os.getenv("apikey")
+MONGO_URI = os.getenv("MONGO_URI")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 if not GOOGLE_API_KEY or not MONGO_URI:
     raise ValueError("API keys not set. Please create a .env file with GOOGLE_API_KEY and MONGO_URI.")
@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="HomeHarvest AI API",
     description="API for user management, inventory tracking, and recipe generation.",
-    version="1.2.0",
+    version="1.3.0",
     lifespan=lifespan
 )
 
@@ -102,7 +102,6 @@ async def update_user(user_id: str, payload: dict):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Handle password update
     if "current_password" in payload and "new_password" in payload:
         update_data = PasswordUpdate(**payload)
         if not verify_password(update_data.current_password, user["hashed_password"]):
@@ -111,7 +110,6 @@ async def update_user(user_id: str, payload: dict):
         await users_collection.update_one({"_id": user_id}, {"$set": {"hashed_password": new_hashed_password}})
         return {"message": "Password updated successfully"}
 
-    # Handle dietary preference update
     elif "dietary_preference" in payload:
         update_data = PreferenceUpdate(**payload)
         await users_collection.update_one({"_id": user_id},
@@ -165,6 +163,28 @@ async def update_inventory_from_image(user_id: str, file: UploadFile = File(...)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+@app.put("/inventory/{user_id}/update-item", summary="Update quantity of a single inventory item")
+async def update_inventory_item(user_id: str, item_update: InventoryItemUpdate):
+    inventory_collection = db["inventory_db"].inventories
+
+    # Use $inc to modify the quantity of the item
+    result = await inventory_collection.update_one(
+        {"user_id": user_id, "items.item_name": item_update.item_name},
+        {"$inc": {"items.$.quantity": item_update.change}}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail=f"Item '{item_update.item_name}' not found in inventory.")
+
+    # After updating, remove any items with quantity 0 or less
+    await inventory_collection.update_one(
+        {"user_id": user_id},
+        {"$pull": {"items": {"quantity": {"$lte": 0}}}}
+    )
+
+    return {"message": f"'{item_update.item_name}' updated successfully."}
 
 
 @app.get("/inventory/{user_id}", response_model=UserInventory, summary="Get a user's full inventory")
