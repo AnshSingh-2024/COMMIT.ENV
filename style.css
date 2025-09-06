@@ -13,21 +13,20 @@ body, nav, .feature-card, .bg-white, .bg-gray-50, .bg-gray-900 {
 
 /* Feature card styling with hover effects */
 .feature-card {
-    @apply bg-white rounded-xl p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:transform hover:-translate-y-2;
-    border: 1px solid #d6d6d6;
+    @apply bg-white rounded-xl p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:transform hover:-translate-y-2;
+    border: 1px solid rgba(243, 244, 246, 0.71);
+    padding: 20px;
     border-radius: 10px;
-
 }
 .dark .feature-card {
     @apply bg-gray-800 border-gray-700;
-    border: 1px #d6d6d6;
 }
 
 .feature-card:hover {
     border-color: #22c55e;
 }
 .dark .feature-card:hover {
-    border-color: #17d44f;
+    border-color: #4ade80;
 }
 
 
@@ -60,6 +59,7 @@ body, nav, .feature-card, .bg-white, .bg-gray-50, .bg-gray-900 {
 /* Upload area styling */
 .upload-area {
     @apply transition-all duration-300;
+
 }
 
 .upload-area:hover {
@@ -68,6 +68,7 @@ body, nav, .feature-card, .bg-white, .bg-gray-50, .bg-gray-900 {
 
 .dark .upload-area {
     @apply bg-gray-700 border-gray-600;
+    background-color: #1f2937;
 }
 .dark .upload-area:hover {
     @apply bg-gray-600 border-green-500;
@@ -102,7 +103,7 @@ section {
 
 /* Hero section gradient animation */
 #home {
-    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+    background: linear-gradient(135deg, #f0fdf4 0%, rgba(255, 255, 255, 0.56) 100%);
     background-size: 400% 400%;
     animation: gradientShift 8s ease infinite;
 }

@@ -9,23 +9,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        'inter': ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { 'inter': ['Inter', 'sans-serif'] },
                     colors: {
                         'green': {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            200: '#bbf7d0',
-                            300: '#86efac',
-                            400: '#4ade80',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                            800: '#166534',
-                            900: '#14532d',
+                            50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
+                            400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d',
+                            800: '#166534', 900: '#14532d',
                         }
                     }
                 }
@@ -33,56 +25,45 @@
         }
     </script>
 </head>
-<body class="font-inter bg-white">
+<body class="font-inter bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
     <!-- Navigation -->
-    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-green-100 z-50">
+    <nav class="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-green-100 dark:border-gray-800 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0">
+                    <a href="index.html" class="flex-shrink-0">
                         <h1 class="text-2xl font-bold text-green-600">🌱 HomeHarvest AI</h1>
-                    </div>
+                    </a>
                 </div>
                 <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="index.html" class="nav-link text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
-                        <a href="kitchen.html" class="nav-link text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium">My Kitchen</a>
-                        <a href="garden.html" class="nav-link text-green-600 hover:text-green-700 px-3 py-2 rounded-md text-sm font-medium">Smart Garden</a>
-                        <a href="community.html" class="nav-link text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium">Community</a>
-                        <a href="about.html" class="nav-link text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium">About</a>
+                    <div class="ml-10 flex items-center">
+                        <div class="flex items-baseline space-x-4">
+                           <a href="index.html" class="nav-link text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                            <a href="kitchen.html" class="nav-link text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">My Kitchen</a>
+                            <a href="garden.html" class="nav-link text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 px-3 py-2 rounded-md text-sm font-medium">Smart Garden</a>
+                            <a href="community.html" class="nav-link text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">Community</a>
+                            <a href="about.html" class="nav-link text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium">About</a>
+                        </div>
+                        <button id="theme-toggle" class="ml-6 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+                            <svg id="theme-toggle-dark-icon" class="hidden h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                            <svg id="theme-toggle-light-icon" class="hidden h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm-.707 10.607a1 1 0 011.414-1.414l-.707-.707a1 1 0 01-1.414 1.414l.707.707zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                        </button>
                     </div>
                 </div>
-                <div class="md:hidden">
-                    <button id="mobile-menu-button" class="text-gray-700 hover:text-green-600">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <!-- Mobile menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-green-100">
-            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="index.html" class="mobile-nav-link text-gray-700 block px-3 py-2 rounded-md text-base font-medium">Home</a>
-                <a href="kitchen.html" class="mobile-nav-link text-gray-700 block px-3 py-2 rounded-md text-base font-medium">My Kitchen</a>
-                <a href="garden.html" class="mobile-nav-link text-green-600 block px-3 py-2 rounded-md text-base font-medium">Smart Garden</a>
-                <a href="community.html" class="mobile-nav-link text-gray-700 block px-3 py-2 rounded-md text-base font-medium">Community</a>
-                <a href="about.html" class="mobile-nav-link text-gray-700 block px-3 py-2 rounded-md text-base font-medium">About</a>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="pt-20 pb-16 bg-gradient-to-br from-green-50 to-white">
+    <section class="pt-20 pb-16 bg-gradient-to-br from-green-50 to-white dark:from-gray-900 dark:to-gray-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
-                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
                     Smart Garden
-                    <span class="text-green-600">AI-Powered Care</span>
+                    <span class="text-green-600 dark:text-green-400">AI-Powered Care</span>
                 </h1>
-                <p class="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
-                    Monitor your plants with AI-powered diagnosis, detect pests and diseases early, 
+                <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
+                    Monitor your plants with AI-powered diagnosis, detect pests and diseases early,
                     and never miss important care tasks with automated reminders.
                 </p>
             </div>
@@ -90,29 +71,29 @@
     </section>
 
     <!-- Smart Garden Section -->
-    <section class="py-16 bg-green-50">
+    <section class="py-16 bg-green-50 dark:bg-gray-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">AI-Powered Plant Care</h2>
-                <p class="text-xl text-gray-600">Advanced Diagnosis and Care Management</p>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">AI-Powered Plant Care</h2>
+                <p class="text-xl text-gray-600 dark:text-gray-400">Advanced Diagnosis and Care Management</p>
             </div>
-            
+
             <div class="grid md:grid-cols-3 gap-8">
                 <!-- Plant Diagnosis Card -->
-                <div class="feature-card bg-white">
+                <div class="feature-card">
                     <div class="bg-green-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
                         <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Plant Diagnosis</h3>
-                    <p class="text-gray-600 mb-4">Upload photos of your plants for instant health assessment and care recommendations.</p>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">Plant Diagnosis</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">Upload photos of your plants for instant health assessment and care recommendations.</p>
                     <div class="upload-area bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-green-400 transition-colors">
                         <input type="file" id="plant-upload" class="hidden" accept="image/*">
                         <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
-                        <p class="text-sm text-gray-500">Click to upload plant photo</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Click to upload plant photo</p>
                     </div>
                     <div id="plant-preview" class="hidden mt-4">
                         <img id="plant-image" class="w-full h-32 object-cover rounded-lg" alt="Plant preview">
@@ -120,147 +101,25 @@
                 </div>
 
                 <!-- Pest/Disease Detection Card -->
-                <div class="feature-card bg-white">
+                <div class="feature-card">
                     <div class="bg-green-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
                         <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Pest & Disease Detection</h3>
-                    <p class="text-gray-600 mb-4">Identify pests and diseases early with AI-powered image analysis.</p>
-                    <div class="space-y-3">
-                        <div class="bg-red-50 p-3 rounded-lg">
-                            <h4 class="font-medium text-red-800">Aphids Detected</h4>
-                            <p class="text-sm text-red-600">Treatment: Neem oil spray recommended</p>
-                        </div>
-                        <div class="bg-green-50 p-3 rounded-lg">
-                            <h4 class="font-medium text-green-800">Plant Healthy</h4>
-                            <p class="text-sm text-green-600">No issues detected</p>
-                        </div>
-                        <div class="bg-yellow-50 p-3 rounded-lg">
-                            <h4 class="font-medium text-yellow-800">Leaf Spot Disease</h4>
-                            <p class="text-sm text-yellow-600">Treatment: Remove affected leaves</p>
-                        </div>
-                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">Pest & Disease Detection</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">Identify pests and diseases early with AI-powered image analysis.</p>
                 </div>
 
                 <!-- Care Reminders Card -->
-                <div class="feature-card bg-white">
+                <div class="feature-card">
                     <div class="bg-green-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
                         <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Care Reminders</h3>
-                    <p class="text-gray-600 mb-4">Never forget to water, fertilize, or prune your plants again.</p>
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between bg-blue-50 p-3 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
-                            <span class="text-sm text-blue-800">Water Tomatoes</span>
-                            <span class="text-xs text-blue-600">Today</span>
-                        </div>
-                        <div class="flex items-center justify-between bg-purple-50 p-3 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors">
-                            <span class="text-sm text-purple-800">Fertilize Basil</span>
-                            <span class="text-xs text-purple-600">Tomorrow</span>
-                        </div>
-                        <div class="flex items-center justify-between bg-orange-50 p-3 rounded-lg cursor-pointer hover:bg-orange-100 transition-colors">
-                            <span class="text-sm text-orange-800">Prune Roses</span>
-                            <span class="text-xs text-orange-600">In 3 days</span>
-                        </div>
-                        <div class="flex items-center justify-between bg-green-50 p-3 rounded-lg cursor-pointer hover:bg-green-100 transition-colors">
-                            <span class="text-sm text-green-800">Harvest Lettuce</span>
-                            <span class="text-xs text-green-600">Ready now</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Plant Health Dashboard -->
-    <section class="py-16 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Plant Health Dashboard</h2>
-                <p class="text-xl text-gray-600">Monitor Your Garden's Vital Signs</p>
-            </div>
-            
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-green-50 rounded-xl p-6 text-center">
-                    <div class="text-3xl mb-2">🌱</div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-1">Total Plants</h3>
-                    <p class="text-2xl font-bold text-green-600">12</p>
-                </div>
-                
-                <div class="bg-blue-50 rounded-xl p-6 text-center">
-                    <div class="text-3xl mb-2">💧</div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-1">Water Today</h3>
-                    <p class="text-2xl font-bold text-blue-600">5</p>
-                </div>
-                
-                <div class="bg-yellow-50 rounded-xl p-6 text-center">
-                    <div class="text-3xl mb-2">⚠️</div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-1">Issues Found</h3>
-                    <p class="text-2xl font-bold text-yellow-600">2</p>
-                </div>
-                
-                <div class="bg-purple-50 rounded-xl p-6 text-center">
-                    <div class="text-3xl mb-2">🌿</div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-1">Ready to Harvest</h3>
-                    <p class="text-2xl font-bold text-purple-600">3</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Plant Care Tips -->
-    <section class="py-16 bg-green-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Care Tips & Recommendations</h2>
-                <p class="text-xl text-gray-600">AI-Generated Care Advice for Your Plants</p>
-            </div>
-            
-            <div class="grid md:grid-cols-2 gap-8">
-                <div class="bg-white rounded-xl p-6 shadow-lg">
-                    <div class="flex items-center mb-4">
-                        <div class="bg-green-100 p-3 rounded-full mr-4">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-semibold text-gray-900">Watering Schedule</h3>
-                            <p class="text-sm text-gray-600">Optimized for your climate</p>
-                        </div>
-                    </div>
-                    <p class="text-gray-600 mb-4">Based on your local weather and plant types, adjust watering frequency to prevent overwatering.</p>
-                    <ul class="text-sm text-gray-600 space-y-2">
-                        <li>• Tomatoes: Water every 2-3 days</li>
-                        <li>• Basil: Water when soil feels dry</li>
-                        <li>• Lettuce: Keep soil consistently moist</li>
-                        <li>• Herbs: Allow soil to dry between watering</li>
-                    </ul>
-                </div>
-
-                <div class="bg-white rounded-xl p-6 shadow-lg">
-                    <div class="flex items-center mb-4">
-                        <div class="bg-green-100 p-3 rounded-full mr-4">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-semibold text-gray-900">Fertilization Guide</h3>
-                            <p class="text-sm text-gray-600">Nutrient recommendations</p>
-                        </div>
-                    </div>
-                    <p class="text-gray-600 mb-4">Provide the right nutrients at the right time for optimal plant growth and yield.</p>
-                    <ul class="text-sm text-gray-600 space-y-2">
-                        <li>• Use organic compost for vegetables</li>
-                        <li>• Apply fish emulsion every 2 weeks</li>
-                        <li>• Add bone meal for root development</li>
-                        <li>• Use seaweed extract for stress relief</li>
-                    </ul>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">Care Reminders</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">Never forget to water, fertilize, or prune your plants again.</p>
                 </div>
             </div>
         </div>
@@ -277,18 +136,6 @@
                         <span class="sr-only">Twitter</span>
                         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"></path>
-                        </svg>
-                    </a>
-                    <a href="#" class="text-gray-400 hover:text-green-400 transition-colors">
-                        <span class="sr-only">GitHub</span>
-                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
-                        </svg>
-                    </a>
-                    <a href="#" class="text-gray-400 hover:text-green-400 transition-colors">
-                        <span class="sr-only">LinkedIn</span>
-                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path fill-rule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clip-rule="evenodd"></path>
                         </svg>
                     </a>
                 </div>

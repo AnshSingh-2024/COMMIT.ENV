@@ -42,7 +42,7 @@
         }
     </script>
 </head>
-<body class="font-inter bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+<body class="font-inter bg-gray dark:bg-gray-900 text-gray-800 dark:text-gray-200">
     <!-- Navigation -->
      <nav class="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-green-100 dark:border-gray-800 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -72,7 +72,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="pt-20 pb-16 bg-gradient-to-br from-green-50 to-white dark:from-gray-900 dark:to-gray-800">
+    <section class="pt-20 pb-16 bg-gradient-to-br from-green-50 to-gray dark:from-gray-900 dark:to-gray-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
@@ -87,9 +87,9 @@
     </section>
 
     <!-- My Kitchen Section -->
-    <section class="py-16 bg-white dark:bg-gray-900">
+    <section class="py-16 bg-gray-50 dark:bg-gray-900">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid md:grid-cols-2 gap-12">
+            <div class="grid md:grid-cols-2 gap-16">
                 <!-- Left Column -->
                 <div>
                     <div class="feature-card mb-8">
@@ -116,27 +116,27 @@
                     </div>
 
                     <div class="feature-card">
-                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">Recipe Preferences</h3>
-                        <div class="grid grid-cols-2 gap-6">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-8">Recipe Preferences</h3>
+                        <div class="grid grid-cols-2 gap-x-8 gap-y-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Difficulty</label>
                                 <div id="difficulty-group" class="inline-flex rounded-lg border dark:border-gray-600">
-                                    <button type="button" data-value="Easy" class="px-4 py-2 text-sm bg-green-600 text-white">Easy</button>
-                                    <button type="button" data-value="Medium" class="px-4 py-2 text-sm border-l dark:border-gray-600">Medium</button>
-                                    <button type="button" data-value="Hard" class="px-4 py-2 text-sm border-l dark:border-gray-600">Hard</button>
+                                    <button type="button" data-value="Easy" class="px-4 py-2 rounded-l text-sm bg-green-600 text-white">Easy</button>
+                                    <button type="button" data-value="Medium" class="px-4 py-2  text-sm border-l dark:border-gray-600">Medium</button>
+                                    <button type="button" data-value="Hard" class="px-4 py-2 text-sm rounded-r border-l dark:border-gray-600">Hard</button>
                                 </div>
                             </div>
                             <div>
                                 <label for="servings" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Serving Size</label>
                                 <div class="flex items-center space-x-2">
                                     <button type="button" id="servings-decrement" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded border dark:border-gray-600">-</button>
-                                    <input id="servings" type="number" min="1" value="2" class="w-16 text-center border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-sm" />
+                                    <input id="servings" type="number" min="1" value="2" class="w-16 h-11 text-center border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg " />
                                     <button type="button" id="servings-increment" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded border dark:border-gray-600">+</button>
                                 </div>
                             </div>
                             <div>
-                                <label for="time-available" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Time</label>
-                                <select id="time-available" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-sm">
+                                <label for="time-available" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 padding:50px">Time</label>
+                                <select id="time-available" class="w-full py-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-m ">
                                     <option value="15">15 min</option>
                                     <option value="30" selected>30 min</option>
                                     <option value="45">45 min</option>
@@ -146,15 +146,15 @@
                             </div>
                             <div>
                                 <label for="diet-preference-selector" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Diet</label>
-                                <select id="diet-preference-selector" class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-sm">
+                                <select id="diet-preference-selector" class="w-full py-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-m">
                                     <option>Veg</option>
                                     <option>Non-Veg</option>
                                     <option>Custom</option>
                                 </select>
                             </div>
                             <div class="col-span-2">
-                                <label for="cuisine" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cuisine (Optional)</label>
-                                <input id="cuisine" type="text" placeholder="Italian, Indian, etc." class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-sm" />
+                                <label for="cuisine" class="block text-m font-medium text-gray-700 dark:text-gray-300 mb-2">Cuisine (Optional)</label>
+                                <input id="cuisine" type="text" placeholder=" Italian, Indian, etc." class="w-full py-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg text-m" />
                             </div>
                            <div class="col-span-2 flex items-center">
                                 <label class="inline-flex items-center cursor-pointer">
@@ -230,7 +230,6 @@
             </div>
         </div>
     </div>
-
 
     <script src="script.js"></script>
 </body>
