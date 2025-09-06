@@ -470,10 +470,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }).join('');
 
                 modalFooter.innerHTML = '';
-                if (missingIngredientStrings.length > 0) {
+                // **THE FIX IS HERE**: Check the purchaseExtras toggle before showing the button
+                if (purchaseExtras.checked && missingIngredientStrings.length > 0) {
                     const shopBtn = document.createElement('button');
                     shopBtn.id = 'shop-missing-btn';
-                    shopBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full';
+                    shopBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-10 rounded w-full';
                     shopBtn.textContent = 'Add Missing to Amazon Cart';
                     modalFooter.appendChild(shopBtn);
 
@@ -499,7 +500,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             const shoppingData = await shoppingResponse.json();
                             if (!shoppingResponse.ok) throw new Error(shoppingData.detail || 'Failed to get shopping link');
 
-                            // This is the corrected line that opens the link
                             window.open(shoppingData.cart_url, '_blank');
 
                         } catch(error) {
