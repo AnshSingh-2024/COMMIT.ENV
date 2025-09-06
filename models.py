@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from bson import ObjectId
-from typing import Optional
+from typing import Optional, List
 from passlib.context import CryptContext
 
 # --- Password Hashing ---
@@ -76,4 +76,8 @@ class PreferenceUpdate(BaseModel):
 
 class InventoryItemUpdate(BaseModel):
     item_name: str
-    change: int  # Will be 1 or -1
+    change: int
+
+
+class IngredientsList(BaseModel):
+    ingredients: List[str]

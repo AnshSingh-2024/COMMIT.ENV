@@ -12,7 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from PIL import Image
 from models import (
     UserInventory, InventoryItem, RecipePayload, User, UserCreate, UserLogin,
-    get_password_hash, verify_password, PasswordUpdate, PreferenceUpdate, InventoryItemUpdate
+    get_password_hash, verify_password, PasswordUpdate, PreferenceUpdate, InventoryItemUpdate,IngredientsList
 )
 
 # --- Configuration & Initialization ---
@@ -21,6 +21,8 @@ MONGO_URI = os.getenv("MONGO_URI")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 AMAZON_SEARCH_API_URL=os.getenv("AMAZON_SEARCH_API_URL")
 AMAZON_CART_BASE_URL=os.getenv("AMAZON_CART_BASE_URL")
+AMAZON_API_KEY=os.getenv("AMAZON_API_KEY")
+AMAZON_API_URL=os.getenv("AMAZON_API_URL")
 if not GOOGLE_API_KEY or not MONGO_URI:
     raise ValueError("API keys not set. Please create a .env file with GOOGLE_API_KEY and MONGO_URI.")
 
@@ -227,21 +229,46 @@ async def get_shopping(items : dict):
     #Items structure={"item_name":Quantity}
     url = AMAZON_SEARCH_API_URL
     headers = {
-        "x-rapidapi-key": "e76a771959msh5c491436acc9dc7p1844bbjsn7b0d863262db",
-        "x-rapidapi-host": "realtime-amazon-data.p.rapidapi.com"
+        "x-rapidapi-key": AMAZON_API_KEY,
+        "x-rapidapi-host": AMAZON_API_URL
     }
     ASINsFound=[]
     i=1
+
     items=items["additionalProp1"]
-    print(items)
-    print(type(items))
     for itemName in items.keys():
+        print("item name : ",itemName)
         querystring = {"keyword": itemName, "country": "in", "page": "1", "sort": "Featured"}
         response = requests.get(url, headers=headers, params=querystring)
+        response.raise_for_status()
         response=response.json()
+        print(response.keys())
         asin=f"&ASIN.{i}="+(response["details"][0]["asin"])+f"&Quantity.{i}="+str(items[itemName])
         print(items[itemName])
         i+=1
         ASINsFound.append(asin)
     cart_url=AMAZON_CART_BASE_URL+''.join(ASINsFound)
     return {"cart_url": cart_url}
+
+@app.post("/clean-ingredients", summary="Cleans a list of descriptive ingredients into a simple format")
+async def clean_ingredients(payload: IngredientsList):
+    descriptive_list = ", ".join(payload.ingredients)
+    prompt = f"""
+    Analyze the following list of recipe ingredients: [{descriptive_list}].
+    Your task is to convert this list into a simple JSON object.
+    The keys must be the generic, searchable name of the ingredient (e.g., "1 tbsp olive oil" becomes "olive oil").
+    The values must be the quantity as an integer. If a quantity is not explicitly mentioned (like "a pinch of salt" or "water"), assume the quantity is 1.
+    Return ONLY the raw JSON object, with no markdown formatting or extra text.
+
+    Example input: ["2 large onions, chopped", "a pinch of salt", "water for boiling"]
+    Example output: {{"onion": 2, "salt": 1, "water": 1}}
+    """
+
+    try:
+        response = model.generate_content(prompt)
+        json_string = response.text.strip().replace("```json", "").replace("```", "")
+        cleaned_data = json.loads(json_string)
+        return cleaned_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
+

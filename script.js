@@ -234,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const user = getSession();
         if (!user) return;
 
-        // --- UI Elements ---
         const difficultyGroup = document.getElementById('difficulty-group');
         const timeSelect = document.getElementById('time-available');
         const servingsInput = document.getElementById('servings');
@@ -246,7 +245,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const generateBtn = document.getElementById('generate-recipes');
         const inventoryContainer = document.getElementById('inventory-display');
         const recipesContainer = document.getElementById('featured-recipes-container');
-
         const pantryUploadInput = document.getElementById('pantry-upload');
         const pantryUploadArea = document.getElementById('pantry-upload-area');
         const pantryPreview = document.getElementById('pantry-preview');
@@ -255,11 +253,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const pantryRemoveBtn = document.getElementById('pantry-remove-btn');
         let currentPantryFile = null;
 
-        // Initialize Recipe Modal
         initializeRecipeModal();
         let currentRecipes = [];
+        let currentInventory = [];
 
-        // --- Pantry Upload ---
         pantryUploadArea.addEventListener('click', () => pantryUploadInput.click());
         pantryUploadInput.addEventListener('change', e => {
             const file = e.target.files[0];
@@ -286,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
                 showNotification(data.message || 'Inventory updated!', 'success');
-                fetchAndDisplayInventory();
+                await fetchAndDisplayInventory();
             } catch (error) { showNotification(error.message, 'error'); }
             finally {
                 hideLoader();
@@ -294,14 +291,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // --- Manual Inventory Update ---
         inventoryContainer.addEventListener('click', async (e) => {
             const button = e.target.closest('button[data-item-name]');
             if (!button) return;
-
             const itemName = button.dataset.itemName;
             const change = parseInt(button.dataset.change, 10);
-
             try {
                 const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}/update-item`, {
                     method: 'PUT',
@@ -310,13 +304,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
-                fetchAndDisplayInventory();
+                await fetchAndDisplayInventory();
             } catch (error) {
                 showNotification(error.message, 'error');
             }
         });
 
-        // --- Preferences Logic ---
         function savePreferences() {
             const prefs = {
                 difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value || 'Easy',
@@ -371,7 +364,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // --- Recipe Generation & Display ---
         generateBtn.addEventListener('click', async () => {
             savePreferences();
             const payload = {
@@ -389,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
-                currentRecipes = data.Recipes; // Store recipes
+                currentRecipes = data.Recipes;
                 displayRecipes(currentRecipes);
                 sessionStorage.setItem('lastGeneratedRecipes', JSON.stringify(currentRecipes));
              } catch(error) { showNotification(error.message, 'error'); }
@@ -409,31 +401,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>`).join('');
         }
 
-        // --- Inventory Display ---
         async function fetchAndDisplayInventory() {
             try {
                 const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`);
                 const data = await response.json();
-                if (!response.ok || !data.items || data.items.length === 0) {
+                if (!response.ok) {
+                    currentInventory = [];
                     inventoryContainer.innerHTML = `<p class="text-gray-500">Your inventory is empty.</p>`;
                     return;
                 }
-                inventoryContainer.innerHTML = data.items.map(item => `
-                    <div class="flex justify-between items-center bg-green-50 p-2 rounded-lg animate-fade-in">
-                        <span class="text-green-800 font-medium flex-1 mr-2">${item.item_name}</span>
-                        <div class="flex items-center">
-                            <button data-item-name="${item.item_name}" data-change="-1" class="bg-green-200 hover:bg-green-300 text-green-800 font-bold w-6 h-6 rounded-full flex items-center justify-center">-</button>
-                            <span class="w-10 text-center font-semibold">${item.quantity}</span>
-                            <button data-item-name="${item.item_name}" data-change="1" class="bg-green-200 hover:bg-green-300 text-green-800 font-bold w-6 h-6 rounded-full flex items-center justify-center">+</button>
-                        </div>
-                    </div>`).join('');
-            } catch (error) { inventoryContainer.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`; }
+                currentInventory = data.items || [];
+                if (currentInventory.length === 0) {
+                    inventoryContainer.innerHTML = `<p class="text-gray-500">Your inventory is empty.</p>`;
+                } else {
+                    inventoryContainer.innerHTML = currentInventory.map(item => `
+                        <div class="flex justify-between items-center bg-green-50 p-2 rounded-lg animate-fade-in">
+                            <span class="text-green-800 font-medium flex-1 mr-2">${item.item_name}</span>
+                            <div class="flex items-center">
+                                <button data-item-name="${item.item_name}" data-change="-1" class="bg-green-200 hover:bg-green-300 text-green-800 font-bold w-6 h-6 rounded-full flex items-center justify-center">-</button>
+                                <span class="w-10 text-center font-semibold">${item.quantity}</span>
+                                <button data-item-name="${item.item_name}" data-change="1" class="bg-green-200 hover:bg-green-300 text-green-800 font-bold w-6 h-6 rounded-full flex items-center justify-center">+</button>
+                            </div>
+                        </div>`).join('');
+                }
+            } catch (error) {
+                currentInventory = [];
+                inventoryContainer.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`;
+            }
         }
 
-        // --- Recipe Modal Logic ---
         function initializeRecipeModal() {
             const modal = document.getElementById('recipe-modal');
             const closeBtn = document.getElementById('recipe-modal-close');
+            const modalFooter = document.getElementById('recipe-modal-footer');
             let savedScrollPosition = 0;
 
             recipesContainer.addEventListener('click', (e) => {
@@ -442,21 +442,80 @@ document.addEventListener('DOMContentLoaded', function() {
                     const recipeIndex = parseInt(card.dataset.recipeIndex, 10);
                     const recipe = currentRecipes[recipeIndex];
                     if (recipe) {
-                        // Populate and show modal
-                        document.getElementById('recipe-modal-title').textContent = recipe.name;
-                        document.getElementById('recipe-modal-description').textContent = recipe.description;
-                        document.getElementById('recipe-modal-prep-time').textContent = `Prep: ${recipe.prep_time_minutes} min`;
-                        document.getElementById('recipe-modal-cook-time').textContent = `Cook: ${recipe.cook_time_minutes} min`;
-                        document.getElementById('recipe-modal-ingredients').innerHTML = recipe.ingredients.map(ing => `<li>${ing}</li>`).join('');
-                        document.getElementById('recipe-modal-instructions').innerHTML = recipe.instructions.map(step => `<li>${step}</li>`).join('');
-
-                        savedScrollPosition = window.scrollY;
-                        document.body.classList.add('modal-open');
-                        modal.classList.remove('hidden');
-                        modal.classList.add('flex');
+                        openRecipeModal(recipe);
                     }
                 }
             });
+
+            async function openRecipeModal(recipe) {
+                document.getElementById('recipe-modal-title').textContent = recipe.name;
+                document.getElementById('recipe-modal-description').textContent = recipe.description;
+                document.getElementById('recipe-modal-prep-time').textContent = `Prep: ${recipe.prep_time_minutes} min`;
+                document.getElementById('recipe-modal-cook-time').textContent = `Cook: ${recipe.cook_time_minutes} min`;
+                document.getElementById('recipe-modal-instructions').innerHTML = recipe.instructions.map(step => `<li>${step}</li>`).join('');
+
+                const inventoryItemNamesLower = currentInventory.map(item => item.item_name.toLowerCase());
+                const missingIngredientStrings = [];
+
+                document.getElementById('recipe-modal-ingredients').innerHTML = recipe.ingredients.map(descriptiveIngredient => {
+                    const descriptiveIngredientLower = descriptiveIngredient.toLowerCase();
+                    const foundInInventory = inventoryItemNamesLower.some(inventoryItem => descriptiveIngredientLower.includes(inventoryItem));
+
+                    if (foundInInventory) {
+                        return `<li class="text-green-700">${descriptiveIngredient} (In Stock)</li>`;
+                    } else {
+                        missingIngredientStrings.push(descriptiveIngredient);
+                        return `<li class="text-red-700">${descriptiveIngredient} (Missing)</li>`;
+                    }
+                }).join('');
+
+                modalFooter.innerHTML = '';
+                if (missingIngredientStrings.length > 0) {
+                    const shopBtn = document.createElement('button');
+                    shopBtn.id = 'shop-missing-btn';
+                    shopBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full';
+                    shopBtn.textContent = 'Add Missing to Amazon Cart';
+                    modalFooter.appendChild(shopBtn);
+
+                    shopBtn.addEventListener('click', async () => {
+                        shopBtn.textContent = 'Cleaning Ingredients...';
+                        shopBtn.disabled = true;
+                        try {
+                            const cleanResponse = await fetch(`${API_BASE_URL}/clean-ingredients`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ingredients: missingIngredientStrings })
+                            });
+                            const cleanedItems = await cleanResponse.json();
+                            if (!cleanResponse.ok) throw new Error('Failed to clean ingredients.');
+
+                            shopBtn.textContent = 'Generating Link...';
+
+                            const shoppingResponse = await fetch(`${API_BASE_URL}/shopping`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ "additionalProp1": cleanedItems })
+                            });
+                            const shoppingData = await shoppingResponse.json();
+                            if (!shoppingResponse.ok) throw new Error(shoppingData.detail || 'Failed to get shopping link');
+
+                            // This is the corrected line that opens the link
+                            window.open(shoppingData.cart_url, '_blank');
+
+                        } catch(error) {
+                            showNotification(error.message, 'error');
+                        } finally {
+                            shopBtn.textContent = 'Add Missing to Amazon Cart';
+                            shopBtn.disabled = false;
+                        }
+                    });
+                }
+
+                savedScrollPosition = window.scrollY;
+                document.body.classList.add('modal-open');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
 
             const closeModal = () => {
                 modal.classList.add('hidden');
@@ -467,9 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             closeBtn.addEventListener('click', closeModal);
             modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    closeModal();
-                }
+                if (e.target === modal) closeModal();
             });
         }
 
@@ -480,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentRecipes = savedRecipes;
             displayRecipes(currentRecipes);
         }
-        fetchAndDisplayInventory();
+        await fetchAndDisplayInventory();
         try {
             const response = await fetch(`${API_BASE_URL}/user/${user.user_id}`);
             const userData = await response.json();
