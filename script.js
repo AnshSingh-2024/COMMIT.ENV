@@ -14,11 +14,54 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Global Initializations ---
     function initializeGlobalElements() {
+        // Mobile menu
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
         if (mobileMenuButton && mobileMenu) {
             mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
         }
+
+        // Theme Toggle
+        initializeThemeToggle();
+    }
+
+    // --- Dark/Light Mode Theme Toggle ---
+    function initializeThemeToggle() {
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const darkIcon = document.getElementById('theme-toggle-dark-icon');
+        const lightIcon = document.getElementById('theme-toggle-light-icon');
+
+        // Apply saved theme on load
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            lightIcon.classList.remove('hidden');
+        } else {
+            document.documentElement.classList.remove('dark');
+            darkIcon.classList.remove('hidden');
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            darkIcon.classList.toggle('hidden');
+            lightIcon.classList.toggle('hidden');
+
+            if (localStorage.getItem('color-theme')) { // If theme is set in localStorage
+                if (localStorage.getItem('color-theme') === 'light') {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                }
+            } else { // If theme is not set in localStorage
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                }
+            }
+        });
     }
 
     // --- Authentication & Session Management ---
@@ -45,12 +88,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const userMenuHTML = `
             <div id="user-menu" class="relative">
                 <button id="user-menu-button" class="ml-4 flex items-center space-x-2">
-                    <span class="text-gray-700 font-medium">${username}</span>
-                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">${username}</span>
+                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
-                <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
-                    <a href="account.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Account</a>
-                    <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg py-1 z-50 hidden">
+                    <a href="account.html" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">My Account</a>
+                    <a href="#" id="logout-button" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Logout</a>
                 </div>
             </div>`;
         navItems.insertAdjacentHTML('beforeend', userMenuHTML);
@@ -333,7 +376,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         function updatePurchaseToggleUI() {
             const knob = purchaseExtras.parentElement.querySelector('span > span');
+            const track = knob.parentElement;
             knob.style.transform = purchaseExtras.checked ? 'translateX(16px)' : 'translateX(0px)';
+            if (purchaseExtras.checked) {
+                track.classList.remove('bg-gray-200', 'dark:bg-gray-600');
+                track.classList.add('bg-green-500');
+            } else {
+                track.classList.add('bg-gray-200', 'dark:bg-gray-600');
+                track.classList.remove('bg-green-500');
+            }
         }
         difficultyGroup.addEventListener('click', e => {
             const btn = e.target.closest('button[data-value]');
@@ -390,14 +441,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function displayRecipes(recipes) {
             if (!recipes || recipes.length === 0) {
-                recipesContainer.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 rounded-lg"><p class="text-gray-600">No recipes found.</p></div>`;
+                recipesContainer.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 dark:bg-gray-800 rounded-lg"><p class="text-gray-600 dark:text-gray-400">No recipes found.</p></div>`;
                 return;
             }
             recipesContainer.innerHTML = recipes.map((recipe, index) => `
-                <div class="bg-white rounded-xl p-6 shadow-lg border animate-fade-in cursor-pointer hover:shadow-xl hover:border-green-500 transition-all" data-recipe-index="${index}">
-                    <h3 class="text-xl font-semibold text-gray-900 pointer-events-none">${recipe.name}</h3>
-                    <p class="text-sm text-gray-600 pointer-events-none">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
-                    <p class="text-gray-600 my-2 pointer-events-none">${recipe.description}</p>
+                <div class="feature-card cursor-pointer hover:border-green-500 dark:hover:border-green-400" data-recipe-index="${index}">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white pointer-events-none">${recipe.name}</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 pointer-events-none">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
+                    <p class="text-gray-600 dark:text-gray-300 my-2 pointer-events-none">${recipe.description}</p>
                 </div>`).join('');
         }
 
@@ -407,20 +458,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 if (!response.ok) {
                     currentInventory = [];
-                    inventoryContainer.innerHTML = `<p class="text-gray-500">Your inventory is empty.</p>`;
+                    inventoryContainer.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your inventory is empty.</p>`;
                     return;
                 }
                 currentInventory = data.items || [];
                 if (currentInventory.length === 0) {
-                    inventoryContainer.innerHTML = `<p class="text-gray-500">Your inventory is empty.</p>`;
+                    inventoryContainer.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your inventory is empty.</p>`;
                 } else {
                     inventoryContainer.innerHTML = currentInventory.map(item => `
-                        <div class="flex justify-between items-center bg-green-50 p-2 rounded-lg animate-fade-in">
-                            <span class="text-green-800 font-medium flex-1 mr-2">${item.item_name}</span>
+                        <div class="flex justify-between items-center bg-green-50 dark:bg-green-900/50 p-2 rounded-lg animate-fade-in">
+                            <span class="text-green-800 dark:text-green-200 font-medium flex-1 mr-2">${item.item_name}</span>
                             <div class="flex items-center">
-                                <button data-item-name="${item.item_name}" data-change="-1" class="bg-green-200 hover:bg-green-300 text-green-800 font-bold w-6 h-6 rounded-full flex items-center justify-center">-</button>
+                                <button data-item-name="${item.item_name}" data-change="-1" class="bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">-</button>
                                 <span class="w-10 text-center font-semibold">${item.quantity}</span>
-                                <button data-item-name="${item.item_name}" data-change="1" class="bg-green-200 hover:bg-green-300 text-green-800 font-bold w-6 h-6 rounded-full flex items-center justify-center">+</button>
+                                <button data-item-name="${item.item_name}" data-change="1" class="bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">+</button>
                             </div>
                         </div>`).join('');
                 }
@@ -462,24 +513,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     const foundInInventory = inventoryItemNamesLower.some(inventoryItem => descriptiveIngredientLower.includes(inventoryItem));
 
                     if (foundInInventory) {
-                        return `<li class="text-green-700">${descriptiveIngredient} (In Stock)</li>`;
+                        return `<li class="text-green-700 dark:text-green-400">${descriptiveIngredient} (In Stock)</li>`;
                     } else {
                         missingIngredientStrings.push(descriptiveIngredient);
-                        return `<li class="text-red-700">${descriptiveIngredient} (Missing)</li>`;
+                        return `<li class="text-red-700 dark:text-red-400">${descriptiveIngredient} (Missing)</li>`;
                     }
                 }).join('');
 
                 modalFooter.innerHTML = '';
-                // **THE FIX IS HERE**: Check the purchaseExtras toggle before showing the button
                 if (purchaseExtras.checked && missingIngredientStrings.length > 0) {
-                    const shopBtn = document.createElement('button');
-                    shopBtn.id = 'shop-missing-btn';
-                    shopBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-10 rounded w-full';
-                    shopBtn.textContent = 'Add Missing to Amazon Cart';
-                    modalFooter.appendChild(shopBtn);
+                     modalFooter.innerHTML = `
+                        <div class="absolute bottom-4 right-4">
+                            <button id="shop-missing-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg>
+                                <span>Add to Cart</span>
+                            </button>
+                        </div>
+                    `;
 
-                    shopBtn.addEventListener('click', async () => {
-                        shopBtn.textContent = 'Cleaning Ingredients...';
+                    document.getElementById('shop-missing-btn').addEventListener('click', async (e) => {
+                        const shopBtn = e.currentTarget;
+                        shopBtn.innerHTML = '<span>Cleaning Ingredients...</span>';
                         shopBtn.disabled = true;
                         try {
                             const cleanResponse = await fetch(`${API_BASE_URL}/clean-ingredients`, {
@@ -490,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             const cleanedItems = await cleanResponse.json();
                             if (!cleanResponse.ok) throw new Error('Failed to clean ingredients.');
 
-                            shopBtn.textContent = 'Generating Link...';
+                            shopBtn.innerHTML = '<span>Generating Link...</span>';
 
                             const shoppingResponse = await fetch(`${API_BASE_URL}/shopping`, {
                                 method: 'POST',
@@ -501,11 +555,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (!shoppingResponse.ok) throw new Error(shoppingData.detail || 'Failed to get shopping link');
 
                             window.open(shoppingData.cart_url, '_blank');
-
                         } catch(error) {
                             showNotification(error.message, 'error');
                         } finally {
-                            shopBtn.textContent = 'Add Missing to Amazon Cart';
+                            shopBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg><span>Add to Cart</span>`;
                             shopBtn.disabled = false;
                         }
                     });
