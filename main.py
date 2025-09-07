@@ -14,15 +14,14 @@ from models import (
     UserInventory, InventoryItem, RecipePayload, User, UserCreate, UserLogin,
     get_password_hash, verify_password, PasswordUpdate, PreferenceUpdate, InventoryItemUpdate,IngredientsList
 )
+from Amazon_Scraper import find_single_amazon_asin
+import httpx
 
 # --- Configuration & Initialization ---
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-AMAZON_SEARCH_API_URL=os.getenv("AMAZON_SEARCH_API_URL")
 AMAZON_CART_BASE_URL=os.getenv("AMAZON_CART_BASE_URL")
-AMAZON_API_KEY=os.getenv("AMAZON_API_KEY")
-AMAZON_API_URL=os.getenv("AMAZON_API_URL")
 if not GOOGLE_API_KEY or not MONGO_URI:
     raise ValueError("API keys not set. Please create a .env file with GOOGLE_API_KEY and MONGO_URI.")
 
@@ -215,7 +214,7 @@ async def get_recipes(user_id: str, payload: RecipePayload):
         - Max Time: {payload.TimeAvailable} minutes
         - Servings: {payload.Serving}
         - Willing to shop for extras: {'Yes' if payload.Shopping else 'No'}
-
+        {"including at max of 2-3 unavailable ingredients not more" if payload.Shopping else ""}
         Return a clean JSON object with a single key 'Recipes'. This key should contain an array of recipe objects.
         Each recipe object must include: 'name' (string), 'description' (string), 'prep_time_minutes' (integer), 'cook_time_minutes' (integer), 'ingredients' (array of strings), and 'instructions' (array of strings).
         Do not include any text outside the JSON object.
@@ -227,23 +226,16 @@ async def get_recipes(user_id: str, payload: RecipePayload):
 @app.post("/shopping",summary = "Returns a link with all the items required")
 async def get_shopping(items : dict):
     #Items structure={"item_name":Quantity}
-    url = AMAZON_SEARCH_API_URL
-    headers = {
-        "x-rapidapi-key": AMAZON_API_KEY,
-        "x-rapidapi-host": AMAZON_API_URL
-    }
     ASINsFound=[]
     i=1
 
     items=items["additionalProp1"]
     for itemName in items.keys():
-        print("item name : ",itemName)
-        querystring = {"keyword": itemName, "country": "in", "page": "1", "sort": "Featured"}
-        response = requests.get(url, headers=headers, params=querystring)
-        response.raise_for_status()
-        response=response.json()
-        print(response.keys())
-        asin=f"&ASIN.{i}="+(response["details"][0]["asin"])+f"&Quantity.{i}="+str(items[itemName])
+        result, error = await find_single_amazon_asin(itemName)
+        if error:
+            raise HTTPException(status_code=503, detail={"error": error, **result})
+
+        asin=f"&ASIN.{i}="+(result["asin"])+f"&Quantity.{i}="+str(items[itemName])
         print(items[itemName])
         i+=1
         ASINsFound.append(asin)
@@ -259,9 +251,10 @@ async def clean_ingredients(payload: IngredientsList):
     The keys must be the generic, searchable name of the ingredient (e.g., "1 tbsp olive oil" becomes "olive oil").
     The values must be the quantity as an integer. If a quantity is not explicitly mentioned (like "a pinch of salt" or "water"), assume the quantity is 1.
     Return ONLY the raw JSON object, with no markdown formatting or extra text.
-
+    Assume water is always present.
+    and also ignore if the input says from inventory
     Example input: ["2 large onions, chopped", "a pinch of salt", "water for boiling"]
-    Example output: {{"onion": 2, "salt": 1, "water": 1}}
+    Example output: {{"onion": 2, "salt": 1}}
     """
 
     try:
@@ -271,4 +264,5 @@ async def clean_ingredients(payload: IngredientsList):
         return cleaned_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
+
 
