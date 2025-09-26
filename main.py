@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 # At the top of main.py
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Body, APIRouter
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse,StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from PIL import Image
@@ -17,7 +17,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from models import Plant, PlantCreate, PlantHistoryEntry, PlantRecommendation, CommunityRecipe, ForumAnswer, ForumPost, \
-    CommunityRecipeCreate
+    CommunityRecipeCreate, GardenChatPayload
 from bson import ObjectId
 from fastapi.staticfiles import StaticFiles
 from models import (
@@ -545,6 +545,39 @@ async def hide_post(post_id: str, user_id: str):
         raise HTTPException(status_code=404, detail="Post not found.")
     return {"message": "Post has been hidden."}
 
+
+# In main.py, add this new endpoint inside the community_router section.
+# Make sure to import GardenChatPayload from models.
+
+@community_router.post("/garden/chat/{plant_id}", summary="Chat with the AI about a specific plant, with streaming")
+async def garden_chat(plant_id: str, payload: GardenChatPayload):
+    plant = await db["inventory_db"].plants.find_one({"_id": plant_id})
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found.")
+
+    history_context = "\n".join([
+        f"- On {entry['timestamp'].strftime('%Y-%m-%d')}, the diagnosis was: '{entry['diagnosis']}'"
+        for entry in plant.get('history', [])
+    ])
+
+    prompt = f"""
+        You are a master gardener and botanist. A user wants advice about their '{plant['plant_name']}' plant.
+        Here is the plant's recent history:
+        {history_context}
+        The user's goal is: "{payload.prompt}"
+        Based on the plant's history and the user's goal, provide clear, actionable suggestions and a step-by-step guide to help them achieve this result. Format your response in markdown.
+    """
+
+    async def stream_generator():
+        try:
+            # Use stream=True to get the response in chunks
+            response_stream = model.generate_content(prompt, stream=True)
+            for chunk in response_stream:
+                yield chunk.text
+        except Exception as e:
+            yield f"Error: Could not get a response from the AI. {e}"
+
+    return StreamingResponse(stream_generator(), media_type="text/plain")
 
 # --- Helper for Anonymous Alias ---
 async def get_or_create_anonymous_alias(user_id: str):

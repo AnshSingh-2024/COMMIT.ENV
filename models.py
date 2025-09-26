@@ -169,3 +169,6 @@ class ForumPostCreate(BaseModel):
 class ForumAnswerCreate(BaseModel):
     content: str
 
+class GardenChatPayload(BaseModel):
+    prompt: str
+
