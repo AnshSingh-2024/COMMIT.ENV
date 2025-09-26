@@ -1,10 +1,8 @@
 # migrate_users.py
-
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 
-# Load environment variables (like your MONGO_URI)
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 
@@ -16,12 +14,19 @@ else:
     db = client.inventoryDB
     users_collection = db.users
 
-    # This command finds all user documents where the 'points' field does NOT exist
-    # and sets it to 0.
-    result = users_collection.update_many(
-        {"points": {"$exists": False}},
-        {"$set": {"points": 0}}
+    # Update users missing the 'role' field
+    role_result = users_collection.update_many(
+        {"role": {"$exists": False}},
+        {"$set": {"role": "user"}}
     )
+    print(f"Added 'role' to {role_result.modified_count} user documents.")
 
-    print(f"Migration complete. Updated {result.modified_count} user documents.")
+    # Update users missing the 'anonymous_alias' field
+    alias_result = users_collection.update_many(
+        {"anonymous_alias": {"$exists": False}},
+        {"$set": {"anonymous_alias": ""}}
+    )
+    print(f"Added 'anonymous_alias' to {alias_result.modified_count} user documents.")
+
+    print("Migration complete.")
     client.close()

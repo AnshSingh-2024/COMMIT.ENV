@@ -24,6 +24,8 @@ class User(BaseModel):
     hashed_password: str
     dietary_preference: Optional[str] = "Veg"
     points: int = 0
+    role: str = "user"  # <-- Add role field (e.g., "user", "moderator")
+    anonymous_alias: str = ""  # <-- Add field for anonymous name
 
     class Config:
         populate_by_name = True
@@ -135,14 +137,14 @@ class CommunityRecipe(BaseModel):
 class ForumAnswer(BaseModel):
     id: str = Field(alias="_id", default_factory=lambda: str(ObjectId()))
     user_id: str
-    author_name: str
+    author_alias: str  # <-- Changed from author_name
     content: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ForumPost(BaseModel):
     id: str = Field(alias="_id", default_factory=lambda: str(ObjectId()))
     user_id: str
-    author_name: str
+    author_alias: str
     title: str
     content: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -161,11 +163,9 @@ class CommunityRecipeCreate(BaseModel):
     instructions: List[str]
 
 class ForumPostCreate(BaseModel):
-    author_name: str
     title: str
     content: str
 
 class ForumAnswerCreate(BaseModel):
-    author_name: str
     content: str
 

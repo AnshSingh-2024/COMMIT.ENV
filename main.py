@@ -1,6 +1,8 @@
 import os
 import io
 import json
+import random
+
 import requests
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -95,7 +97,8 @@ async def login(user_data: UserLogin):
     if not user or not verify_password(user_data.password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
 
-    return {"user_id": str(user["_id"]), "name": user["name"]}
+    # Include the user's role in the session data
+    return {"user_id": str(user["_id"]), "name": user["name"], "role": user.get("role", "user")}
 
 
 @app.get("/user/{user_id}", summary="Get user details")
@@ -411,10 +414,21 @@ async def get_all_community_recipes():
     return recipes
 
 
-@community_router.get("/forum", summary="Get all forum posts")
+@community_router.get("/forum", summary="Get all visible forum posts")
 async def get_all_forum_posts():
-    posts_cursor = db["inventory_db"].forum_posts.find().sort("created_at", -1)
+    # This query now correctly filters to find documents where 'hidden' is NOT True.
+    # This ensures hidden posts are excluded for everyone.
+    posts_cursor = db["inventory_db"].forum_posts.find(
+        {"hidden": {"$ne": True}}
+    ).sort("created_at", -1)
+
     posts = await posts_cursor.to_list(length=100)
+
+    # Also filter out hidden answers from each post
+    for post in posts:
+        if "answers" in post:
+            post["answers"] = [ans for ans in post["answers"] if not ans.get("hidden", False)]
+
     return posts
 
 
@@ -436,39 +450,67 @@ async def create_community_recipe(user_id: str, recipe_data: CommunityRecipeCrea
     return {"message": "Recipe shared successfully! You earned 5 points."}
 
 
-@community_router.post("/recipes/{recipe_id}/upvote/{user_id}", summary="Upvote a recipe")
-async def upvote_recipe(recipe_id: str, user_id: str):
+@community_router.post("/recipes/{recipe_id}/toggle_upvote/{user_id}", summary="Toggle upvote on a recipe")
+async def toggle_upvote_recipe(recipe_id: str, user_id: str):
     recipes_collection = db["inventory_db"].community_recipes
+    users_collection = db["inventory_db"].users
 
-    recipe = await recipes_collection.find_one({"_id": recipe_id, "upvoted_by": user_id})
-    if recipe:
-        raise HTTPException(status_code=400, detail="You have already upvoted this recipe.")
-
-    result = await recipes_collection.update_one(
-        {"_id": recipe_id},
-        {"$inc": {"upvotes": 1}, "$push": {"upvoted_by": user_id}}
-    )
-    if result.matched_count == 0:
+    recipe = await recipes_collection.find_one({"_id": recipe_id})
+    if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found.")
 
-    recipe_author = await recipes_collection.find_one({"_id": recipe_id})
-    author_id = recipe_author.get("user_id")
-    if author_id and author_id != user_id:
-        await db["inventory_db"].users.update_one({"_id": author_id}, {"$inc": {"points": 1}})
+    author_id = recipe.get("user_id")
 
-    return {"message": "Recipe upvoted!"}
+    # Check if the user is already in the 'upvoted_by' list
+    if user_id in recipe.get("upvoted_by", []):
+        # --- User has already upvoted, so REMOVE the upvote ---
+        await recipes_collection.update_one(
+            {"_id": recipe_id},
+            {"$inc": {"upvotes": -1}, "$pull": {"upvoted_by": user_id}}
+        )
+        # Subtract a point from the author, unless they are down-voting their own recipe
+        if author_id and author_id != user_id:
+            await users_collection.update_one({"_id": author_id}, {"$inc": {"points": -1}})
+        return {"message": "Upvote removed."}
+    else:
+        # --- User has NOT upvoted, so ADD the upvote ---
+        await recipes_collection.update_one(
+            {"_id": recipe_id},
+            {"$inc": {"upvotes": 1}, "$push": {"upvoted_by": user_id}}
+        )
+        # Add a point to the author, unless they are up-voting their own recipe
+        if author_id and author_id != user_id:
+            await users_collection.update_one({"_id": author_id}, {"$inc": {"points": 1}})
+        return {"message": "Recipe upvoted!"}
+
+@community_router.get("/forum", summary="Get all visible forum posts")
+async def get_all_forum_posts():
+    # Only fetch posts that are not hidden
+    posts_cursor = db["inventory_db"].forum_posts.find({"hidden": False}).sort("created_at", -1)
+    posts = await posts_cursor.to_list(length=100)
+    return posts
 
 
 @community_router.post("/forum/{user_id}", summary="Create a new forum post")
 async def create_forum_post(user_id: str, post_data: ForumPostCreate):
-    new_post = ForumPost(user_id=user_id, **post_data.model_dump())
+    author_alias = await get_or_create_anonymous_alias(user_id)
+    new_post = ForumPost(
+        user_id=user_id,
+        author_alias=author_alias,
+        **post_data.model_dump()
+    )
     await db["inventory_db"].forum_posts.insert_one(new_post.model_dump(by_alias=True))
     return {"message": "Post created successfully."}
 
 
 @community_router.post("/forum/{post_id}/answer/{user_id}", summary="Add an answer to a post")
 async def add_forum_answer(post_id: str, user_id: str, answer_data: ForumAnswerCreate):
-    new_answer = ForumAnswer(user_id=user_id, **answer_data.model_dump())
+    author_alias = await get_or_create_anonymous_alias(user_id)
+    new_answer = ForumAnswer(
+        user_id=user_id,
+        author_alias=author_alias,
+        **answer_data.model_dump()
+    )
     result = await db["inventory_db"].forum_posts.update_one(
         {"_id": post_id},
         {"$push": {"answers": new_answer.model_dump()}}
@@ -476,6 +518,46 @@ async def add_forum_answer(post_id: str, user_id: str, answer_data: ForumAnswerC
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Post not found.")
     return {"message": "Answer posted successfully."}
+
+
+@community_router.post("/forum/{post_id}/report", summary="Report a post")
+async def report_post(post_id: str):
+    result = await db["inventory_db"].forum_posts.update_one(
+        {"_id": post_id},
+        {"$inc": {"reports": 1}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    return {"message": "Post reported. A moderator will review it shortly."}
+
+
+@community_router.put("/forum/{post_id}/hide/{user_id}", summary="Hide a post (Moderator only)")
+async def hide_post(post_id: str, user_id: str):
+    user = await db["inventory_db"].users.find_one({"_id": user_id})
+    if not user or user.get("role") != "moderator":
+        raise HTTPException(status_code=403, detail="You do not have permission to perform this action.")
+
+    result = await db["inventory_db"].forum_posts.update_one(
+        {"_id": post_id},
+        {"$set": {"hidden": True}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    return {"message": "Post has been hidden."}
+
+
+# --- Helper for Anonymous Alias ---
+async def get_or_create_anonymous_alias(user_id: str):
+    users_collection = db["inventory_db"].users
+    user = await users_collection.find_one({"_id": user_id})
+    if user.get("anonymous_alias"):
+        return user["anonymous_alias"]
+
+    # Create a new alias if one doesn't exist
+    new_alias = f"Gardener_{random.randint(1000, 9999)}"
+    # In a real-world app, you'd check for uniqueness here
+    await users_collection.update_one({"_id": user_id}, {"$set": {"anonymous_alias": new_alias}})
+    return new_alias
 
 
 # 3. Add this line at the very end of your main.py file to activate the router

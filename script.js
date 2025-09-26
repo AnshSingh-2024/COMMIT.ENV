@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
-                setSession({ user_id: data.user_id, name: data.name });
+                setSession(data);
                 window.location.href = 'kitchen.html';
             } catch (error) {
                  formMessage.textContent = error.message;
@@ -232,6 +232,8 @@ async function initializeCommunityPage() {
     const shareRecipeForm = document.getElementById('share-recipe-form');
     const leaderboardContainer = document.getElementById('leaderboard-container');
     const forumContainer = document.getElementById('forum-container');
+    const askQuestionForm = document.getElementById('ask-question-form');
+    const addAnswerForm = document.getElementById('add-answer-form');
 
     // --- HELPER FUNCTIONS ---
     const openModal = (modal) => modal && modal.classList.replace('hidden', 'flex');
@@ -242,10 +244,10 @@ async function initializeCommunityPage() {
         if (!list) return;
         const itemDiv = document.createElement('div');
         itemDiv.className = 'flex items-center gap-2';
-        const inputClasses = "mt-1 block w-full border-gray-300 py-2 bg-offwhite-50 px-4 dark:bg-gray-700 dark:border-gray-600 rounded-md shadow-sm";
+        const baseClasses = "block w-full bg-offwhite-50 dark:bg-gray-700 border-gray-600 shadow-sm h-8 px-2 rounded";
         itemDiv.innerHTML = (placeholder === 'Ingredient Name')
-            ? `<input type="text" placeholder="${placeholder}" class="${inputClasses} flex-grow ingredient-name"><input type="text" placeholder="Quantity" class="${inputClasses} flex-grow ingredient-qty"><button type="button" class="remove-item-btn text-red-500 font-bold text-xl">&times;</button>`
-            : `<input type="text" placeholder="Step description" class="${inputClasses} flex-grow instruction-step"><button type="button" class="remove-item-btn text-red-500 font-bold text-xl">&times;</button>`;
+            ? `<input type="text" placeholder="${placeholder}" class="${baseClasses} flex-grow ingredient-name"><input type="text" placeholder="Quantity" class="${baseClasses} flex-grow ingredient-qty"><button type="button" class="remove-item-btn text-red-500 font-bold text-xl">&times;</button>`
+            : `<input type="text" placeholder="Step description" class="${baseClasses} flex-grow instruction-step"><button type="button" class="remove-item-btn text-red-500 font-bold text-xl">&times;</button>`;
         list.appendChild(itemDiv);
     };
 
@@ -259,29 +261,30 @@ async function initializeCommunityPage() {
         addItem('instructions-list', 'Instruction');
     };
 
-    // --- DATA FETCHING AND RENDERING ---
+    // --- DATA FETCHING & RENDERING ---
     const renderRecipes = (recipes) => {
         if (!recipesContainer) return;
         if (recipes.length === 0) {
             recipesContainer.innerHTML = '<p class="col-span-full">No community recipes shared yet. Be the first!</p>';
             return;
         }
-        recipesContainer.innerHTML = recipes.map(recipe => `
+        recipesContainer.innerHTML = recipes.map(recipe => {
+            const isUpvoted = recipe.upvoted_by.includes(user.user_id);
+            return `
             <div class="feature-card flex flex-col">
                 <h3 class="text-xl font-semibold">${recipe.recipe_name}</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400">by ${recipe.author_name}</p>
                 <p class="text-sm text-gray-600 dark:text-gray-300 mt-2 flex-grow">${recipe.description.substring(0, 100)}...</p>
                 <div class="flex justify-between items-center mt-4">
-                    <button data-recipe-id="${recipe._id}" class="upvote-btn text-gray-500 hover:text-green-500 flex items-center gap-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" ${recipe.upvoted_by.includes(user.user_id) ? 'disabled' : ''}>
-                        <svg class="w-5 h-5" fill="${recipe.upvoted_by.includes(user.user_id) ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-                        <span>${recipe.upvotes}</span>
+                    <button data-recipe-id="${recipe._id}" data-is-upvoted="${isUpvoted}" class="upvote-btn text-gray-500 hover:text-green-500 flex items-center gap-1 transition-colors">
+                        <svg class="w-5 h-5 ${isUpvoted ? 'text-green-500' : 'text-gray-400'}" fill="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                        <span class="upvote-count">${recipe.upvotes}</span>
                     </button>
-                    <button data-recipe='${JSON.stringify(recipe)}' class="view-recipe-btn text-green-600 hover:underline">View Recipe</button>
+                    <button data-recipe-id="${recipe._id}" class="view-recipe-btn text-green-600 hover:underline">View Recipe</button>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     };
-
     const fetchAndDisplayRecipes = async () => {
         if (!recipesContainer) return;
         recipesContainer.innerHTML = '<p class="col-span-full">Loading recipes...</p>';
@@ -294,9 +297,37 @@ async function initializeCommunityPage() {
         }
     };
 
+    const renderForumPosts = (posts) => {
+        if (!forumContainer) return;
+        if (posts.length === 0) {
+            forumContainer.innerHTML = '<p class="text-center text-gray-500">No discussions yet. Be the first to ask a question!</p>';
+            return;
+        }
+        forumContainer.innerHTML = posts.map(post => `
+            <div class="feature-card !p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4" data-post-id-wrapper="${post._id}">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${post.title}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Asked by ${post.author_alias} &bull; ${post.answers.length} answers &bull; ${post.reports || 0} reports</p>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button data-post-id="${post._id}" class="report-post-btn text-xs text-red-500 hover:underline">Report</button>
+                    ${user.role === 'moderator' ? `<button data-post-id="${post._id}" class="hide-post-btn text-xs text-blue-500 hover:underline">Hide</button>` : ''}
+                    <button data-post='${JSON.stringify(post)}' class="view-post-btn bg-gray-200 dark:bg-gray-700 font-medium py-2 px-4 rounded-lg text-sm">View</button>
+                </div>
+            </div>
+        `).join('');
+    };
+
     const fetchAndDisplayForum = async () => {
         if (!forumContainer) return;
-        forumContainer.innerHTML = '<p class="text-center">Discussion forum is a work in progress and will be available soon!</p>';
+        forumContainer.innerHTML = '<p class="text-center">Loading discussions...</p>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/community/forum`);
+            const posts = await response.json();
+            renderForumPosts(posts);
+        } catch (error) {
+            forumContainer.innerHTML = '<p class="text-center text-red-500">Could not load discussions.</p>';
+        }
     };
 
     const fetchAndDisplayLeaderboard = async () => {
@@ -316,29 +347,31 @@ async function initializeCommunityPage() {
         }
     };
 
-    // --- EVENT LISTENERS ---
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('text-green-600', 'border-green-500'));
-            panels.forEach(p => p.classList.add('hidden'));
-            tab.classList.add('text-green-600', 'border-green-500');
-            const panel = document.getElementById(`${tab.dataset.tab}-panel`);
-            if (panel) panel.classList.remove('hidden');
-            loadTabData(tab.dataset.tab);
-        });
-    });
-
     const loadTabData = (tab) => {
         if (tab === 'recipes') fetchAndDisplayRecipes();
         else if (tab === 'forum') fetchAndDisplayForum();
         else if (tab === 'leaderboard') fetchAndDisplayLeaderboard();
     };
 
+    // --- EVENT LISTENERS ---
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('text-green-600', 'border-green-500'));
+        panels.forEach(p => p.classList.add('hidden'));
+        tab.classList.add('text-green-600', 'border-green-500');
+        const panel = document.getElementById(`${tab.dataset.tab}-panel`);
+        if (panel) panel.classList.remove('hidden');
+        loadTabData(tab.dataset.tab);
+    }));
+
     document.getElementById('share-recipe-btn')?.addEventListener('click', () => {
         resetRecipeForm();
         openModal(modals.shareRecipe);
     });
-    document.getElementById('ask-question-btn')?.addEventListener('click', () => openModal(modals.askQuestion));
+
+    document.getElementById('ask-question-btn')?.addEventListener('click', () => {
+        if(askQuestionForm) askQuestionForm.reset();
+        openModal(modals.askQuestion);
+    });
 
     Object.values(modals).forEach(modal => {
         if (!modal) return;
@@ -361,13 +394,8 @@ async function initializeCommunityPage() {
     shareRecipeForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         showLoader('Posting your recipe...');
-        const ingredients = Array.from(document.querySelectorAll('#ingredients-list > div')).map(div => ({
-            name: div.querySelector('.ingredient-name').value,
-            quantity: div.querySelector('.ingredient-qty').value,
-        })).filter(i => i.name && i.quantity);
-        const instructions = Array.from(document.querySelectorAll('#instructions-list > div')).map(div =>
-            div.querySelector('.instruction-step').value
-        ).filter(Boolean);
+        const ingredients = Array.from(document.querySelectorAll('#ingredients-list > div')).map(div => ({ name: div.querySelector('.ingredient-name').value, quantity: div.querySelector('.ingredient-qty').value })).filter(i => i.name && i.quantity);
+        const instructions = Array.from(document.querySelectorAll('#instructions-list > div')).map(div => div.querySelector('.instruction-step').value).filter(Boolean);
         const payload = { author_name: user.name, recipe_name: document.getElementById('recipe-name').value, description: document.getElementById('recipe-description').value, diet_type: document.getElementById('recipe-diet-type').value, ingredients, instructions };
         try {
             const response = await fetch(`${API_BASE_URL}/community/recipes/${user.user_id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -384,39 +412,200 @@ async function initializeCommunityPage() {
         }
     });
 
+    askQuestionForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLoader('Posting question...');
+        const payload = { title: document.getElementById('question-title').value, content: document.getElementById('question-content').value };
+        try {
+            const response = await fetch(`${API_BASE_URL}/community/forum/${user.user_id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail);
+            showNotification(data.message, 'success');
+            closeModal(modals.askQuestion);
+            fetchAndDisplayForum();
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            hideLoader();
+        }
+    });
+
+    addAnswerForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const postId = e.currentTarget.dataset.postId;
+        const answerContent = document.getElementById('answer-content');
+        if (!postId || !answerContent.value) return;
+        showLoader('Submitting answer...');
+        const payload = { content: answerContent.value };
+        try {
+            const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/answer/${user.user_id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail);
+            showNotification(data.message, 'success');
+            answerContent.value = '';
+            closeModal(modals.viewPost);
+            fetchAndDisplayForum();
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            hideLoader();
+        }
+    });
+
     document.body.addEventListener('click', async (e) => {
         const upvoteBtn = e.target.closest('.upvote-btn');
         const viewRecipeBtn = e.target.closest('.view-recipe-btn');
+        const viewPostBtn = e.target.closest('.view-post-btn');
+        const reportBtn = e.target.closest('.report-post-btn');
+        const hideBtn = e.target.closest('.hide-post-btn');
+        const reportAnswerBtn = e.target.closest('.report-answer-btn');
+        const hideAnswerBtn = e.target.closest('.hide-answer-btn');
+
         if (upvoteBtn) {
             const recipeId = upvoteBtn.dataset.recipeId;
-            upvoteBtn.disabled = true;
+            let isUpvoted = upvoteBtn.dataset.isUpvoted === 'true';
+
+            // Instantly update the button's look and count
+            const countSpan = upvoteBtn.querySelector('.upvote-count');
+            const svgIcon = upvoteBtn.querySelector('svg');
+            let currentCount = parseInt(countSpan.textContent, 10);
+
+            isUpvoted = !isUpvoted; // Toggle the state
+            upvoteBtn.dataset.isUpvoted = isUpvoted;
+            countSpan.textContent = isUpvoted ? currentCount + 1 : currentCount - 1;
+            svgIcon.classList.toggle('text-green-500', isUpvoted);
+            svgIcon.classList.toggle('text-gray-400', !isUpvoted);
+
             try {
-                const response = await fetch(`${API_BASE_URL}/community/recipes/${recipeId}/upvote/${user.user_id}`, { method: 'POST' });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail);
-                showNotification(data.message, 'success');
-                fetchAndDisplayRecipes();
+                // Send the request to the server in the background
+                const response = await fetch(`${API_BASE_URL}/community/recipes/${recipeId}/toggle_upvote/${user.user_id}`, { method: 'POST' });
+                if (!response.ok) {
+                    throw new Error('Upvote failed on server');
+                }
+                // Refresh only the leaderboard
                 fetchAndDisplayLeaderboard();
             } catch (error) {
+                // If the server fails, revert the change and show an error
                 showNotification(error.message, 'error');
-                upvoteBtn.disabled = false;
+                isUpvoted = !isUpvoted;
+                upvoteBtn.dataset.isUpvoted = isUpvoted;
+                countSpan.textContent = currentCount; // Revert to original count
+                svgIcon.classList.toggle('text-green-500', isUpvoted);
+                svgIcon.classList.toggle('text-gray-400', !isUpvoted);
             }
         }
+
         if (viewRecipeBtn) {
-            const recipe = JSON.parse(viewRecipeBtn.dataset.recipe);
+            const recipeId = viewRecipeBtn.dataset.recipeId;
+            // Find the full recipe object from the array we already have
+            const recipe = currentRecipes.find(r => r._id === recipeId);
+            if (!recipe) return;
+
+            const recipeFooter = document.getElementById('view-recipe-footer');
+
             document.getElementById('view-recipe-title').textContent = recipe.recipe_name;
             document.getElementById('view-recipe-author').textContent = `By ${recipe.author_name}`;
             document.getElementById('view-recipe-description').textContent = recipe.description;
             document.getElementById('view-recipe-ingredients').innerHTML = recipe.ingredients.map(i => `<li>${i.quantity} ${i.name}</li>`).join('');
             document.getElementById('view-recipe-instructions').innerHTML = recipe.instructions.map(s => `<li>${s}</li>`).join('');
+
+            if (recipeFooter) {
+                recipeFooter.innerHTML = ''; // Clear previous button
+                const shoppingPayload = { "additionalProp1": {} };
+                recipe.ingredients.forEach(i => { shoppingPayload.additionalProp1[i.name] = 1; });
+
+                const shopBtn = document.createElement('button');
+                shopBtn.className = 'w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2';
+                shopBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg> <span>Shop for Ingredients</span>`;
+                recipeFooter.appendChild(shopBtn);
+
+                shopBtn.addEventListener('click', async () => {
+                    showLoader('Finding items on Amazon...');
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/shopping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(shoppingPayload) });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.detail || 'Failed to get shopping link.');
+                        window.open(data.cart_url, '_blank');
+                    } catch (error) { showNotification(error.message, 'error'); }
+                    finally { hideLoader(); }
+                });
+            }
             openModal(modals.viewRecipe);
+        }
+        if (viewPostBtn) {
+            const post = JSON.parse(viewPostBtn.dataset.post);
+            document.getElementById('view-post-title').textContent = post.title;
+            document.getElementById('view-post-author').textContent = `Asked by ${post.author_alias}`;
+            document.getElementById('view-post-content').innerHTML = `<p>${post.content.replace(/\n/g, '<br>')}</p>`;
+            document.getElementById('view-post-answers').innerHTML = post.answers.length > 0
+                ? post.answers.map(ans => `
+                    <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg" data-answer-id-wrapper="${ans.id}">
+                        <p class="text-sm text-gray-500">${ans.author_alias} answered:</p>
+                        <p>${ans.content.replace(/\n/g, '<br>')}</p>
+                        <div class="text-xs text-gray-400 mt-2 flex items-center gap-2">
+                            <span>${ans.reports || 0} reports</span>
+                            &bull;
+                            <button data-post-id="${post._id}" data-answer-id="${ans.id}" class="report-answer-btn text-red-500 hover:underline">Report</button>
+                            ${user.role === 'moderator' ? `&bull; <button data-post-id="${post._id}" data-answer-id="${ans.id}" class="hide-answer-btn text-blue-500 hover:underline">Hide</button>` : ''}
+                        </div>
+                    </div>`).join('')
+                : '<p class="text-sm text-gray-500">No answers yet.</p>';
+            if(addAnswerForm) addAnswerForm.dataset.postId = post._id;
+            openModal(modals.viewPost);
+        }
+        if (reportBtn) {
+            const postId = reportBtn.dataset.postId;
+            if (confirm('Are you sure you want to report this post for review?')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/report`, { method: 'POST' });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+                    showNotification(data.message, 'success');
+                } catch (error) { showNotification(error.message, 'error'); }
+            }
+        }
+        if (hideBtn) {
+            const postId = hideBtn.dataset.postId;
+            if (confirm('MODERATOR: Are you sure you want to hide this post from public view?')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/hide/${user.user_id}`, { method: 'PUT' });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+                    showNotification(data.message, 'success');
+                    e.target.closest('[data-post-id-wrapper]').remove();
+                } catch (error) { showNotification(error.message, 'error'); }
+            }
+        }
+        if (reportAnswerBtn) {
+            const postId = reportAnswerBtn.dataset.postId;
+            const answerId = reportAnswerBtn.dataset.answerId;
+            if (confirm('Are you sure you want to report this answer for review?')) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/answer/${answerId}/report`, { method: 'POST' });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+                    showNotification(data.message, 'success');
+                } catch (error) { showNotification(error.message, 'error'); }
+            }
+        }
+        if (hideAnswerBtn) {
+            const postId = hideAnswerBtn.dataset.postId;
+             if (confirm('MODERATOR: Are you sure you want to hide this answer?')) {
+                const answerId = hideAnswerBtn.dataset.answerId;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/answer/${answerId}/hide/${user.user_id}`, { method: 'PUT' });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+                    showNotification(data.message, 'success');
+                    e.target.closest('[data-answer-id-wrapper]').remove();
+                } catch (error) { showNotification(error.message, 'error'); }
+            }
         }
     });
 
     // --- INITIAL PAGE LOAD ---
     loadTabData('recipes');
 }
-
     async function initializeAccountPage() {
         const user = getSession();
         if (!user) return;
