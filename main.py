@@ -5,14 +5,22 @@ import requests
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import google.generativeai as genai
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Body
+# At the top of main.py
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Body, APIRouter
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from PIL import Image
+import shutil
+from pathlib import Path
+from datetime import datetime
+from models import Plant, PlantCreate, PlantHistoryEntry, PlantRecommendation, CommunityRecipe, ForumAnswer, ForumPost, \
+    CommunityRecipeCreate
+from bson import ObjectId
+from fastapi.staticfiles import StaticFiles
 from models import (
     UserInventory, InventoryItem, RecipePayload, User, UserCreate, UserLogin,
-    get_password_hash, verify_password, PasswordUpdate, PreferenceUpdate, InventoryItemUpdate,IngredientsList
+    get_password_hash, verify_password, PasswordUpdate, PreferenceUpdate, InventoryItemUpdate,IngredientsList,ForumPostCreate, ForumAnswerCreate
 )
 from Amazon_Scraper import find_single_amazon_asin
 import httpx
@@ -46,6 +54,8 @@ app = FastAPI(
     version="1.3.0",
     lifespan=lifespan
 )
+Path("static/plant_images").mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- CORS Middleware ---
 app.add_middleware(
@@ -265,4 +275,208 @@ async def clean_ingredients(payload: IngredientsList):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
 
+@app.post("/garden/{user_id}", summary="Add a new plant to the garden")
+async def add_plant_to_garden(user_id: str, plant_name: str = Body(...), file: UploadFile = File(...)):
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image.")
 
+    # Save the image
+    file_extension = Path(file.filename).suffix
+    unique_filename = f"{ObjectId()}{file_extension}"
+    image_path = Path("static/plant_images") / unique_filename
+    with open(image_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Create initial history entry
+    initial_entry = PlantHistoryEntry(
+        image_path=str(image_path),
+        diagnosis="Plant registered successfully.",
+        recommendations=["Monitor for initial growth and watering needs."]
+    )
+
+    # Create new plant document
+    new_plant = Plant(
+        user_id=user_id,
+        plant_name=plant_name,
+        history=[initial_entry]
+    )
+
+    await db["inventory_db"].plants.insert_one(new_plant.model_dump(by_alias=True))
+    return {"message": f"'{plant_name}' added to your garden.", "plant": new_plant.model_dump()}
+
+
+@app.get("/garden/{user_id}", summary="Get all plants in a user's garden")
+async def get_garden(user_id: str):
+    plants_cursor = db["inventory_db"].plants.find({"user_id": user_id})
+    plants = await plants_cursor.to_list(length=None)
+    return plants
+
+
+@app.post("/garden/diagnose/{plant_id}", summary="Diagnose a plant from a new image")
+async def diagnose_plant(plant_id: str, file: UploadFile = File(...)):
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image.")
+
+    plant = await db["inventory_db"].plants.find_one({"_id": plant_id})
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found.")
+
+    image_bytes = await file.read()
+
+    file_extension = Path(file.filename).suffix
+    unique_filename = f"{ObjectId()}{file_extension}"
+    image_path = Path("static/plant_images") / unique_filename
+    with open(image_path, "wb") as buffer:
+        buffer.write(image_bytes)
+
+    img = Image.open(io.BytesIO(image_bytes))
+
+    # --- CORRECTED HISTORY CONTEXT LOGIC ---
+    history_entries = []
+    for entry in plant.get('history', []):
+        # Check for the new format (list of dicts) vs the old (list of strings)
+        rec_titles = []
+        for rec in entry.get('recommendations', []):
+            if isinstance(rec, dict):
+                rec_titles.append(rec.get('title', ''))  # Use the title from the object
+            elif isinstance(rec, str):
+                rec_titles.append(rec)  # Use the string directly for old data
+
+        recommendations_str = ", ".join(filter(None, rec_titles))  # Join the titles/strings
+        entry_timestamp = entry['timestamp'].strftime('%Y-%m-%d')
+        entry_diagnosis = entry['diagnosis']
+        history_entries.append(
+            f"- On {entry_timestamp}, the diagnosis was: '{entry_diagnosis}' with recommendations: {recommendations_str}"
+        )
+    history_context = "\n".join(history_entries)
+
+    prompt = f"""
+        You are a plant health expert. Analyze the provided image of a '{plant['plant_name']}' plant.
+        Here is the plant's history for context:
+        {history_context}
+
+        Based on the new image and the plant's history, provide a concise diagnosis and actionable recommendations.
+        Return a clean JSON object with two keys: 'diagnosis' (string) and 'recommendations' (an array of objects).
+        Each recommendation object must have three keys:
+        1. 'title': A brief, one-line summary of the action (e.g., "Apply Neem Oil").
+        2. 'steps': An array of strings containing the detailed step-by-step guide for the action.
+        3. 'purchasable_items': An array of strings listing any generic, searchable product names needed for this action (e.g., ["neem oil", "perlite"]). If no items are needed, return an empty array.
+
+        Do not include any text outside the main JSON object.
+    """
+
+    try:
+        response = model.generate_content([prompt, img])
+        json_string = response.text.strip().replace("```json", "").replace("```", "")
+        ai_data = json.loads(json_string)
+
+        # We must now use PlantRecommendation when creating the entry
+        new_recommendations = [PlantRecommendation(**rec) for rec in ai_data.get("recommendations", [])]
+
+        new_history_entry = PlantHistoryEntry(
+            image_path=str(image_path),
+            diagnosis=ai_data.get("diagnosis", "No diagnosis provided."),
+            recommendations=new_recommendations
+        )
+
+        await db["inventory_db"].plants.update_one(
+            {"_id": plant_id},
+            {"$push": {"history": new_history_entry.model_dump()}}
+        )
+        return {"message": "Diagnosis complete.", "new_entry": new_history_entry.model_dump()}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI processing failed: {e}")
+
+    # Make sure to import ForumPostCreate and ForumAnswerCreate from models.
+
+
+# In main.py, replace your entire community endpoints block with this new APIRouter version.
+
+# --- Community & Gamification Endpoints ---
+
+# 1. Create a new router with a prefix
+community_router = APIRouter(
+    prefix="/community",
+    tags=["Community"],
+)
+
+
+# 2. Change all decorators from @app to @community_router and simplify the paths
+
+@community_router.get("/recipes", summary="Get all shared recipes")
+async def get_all_community_recipes():
+    recipes_cursor = db["inventory_db"].community_recipes.find().sort("created_at", -1)
+    recipes = await recipes_cursor.to_list(length=100)
+    return recipes
+
+
+@community_router.get("/forum", summary="Get all forum posts")
+async def get_all_forum_posts():
+    posts_cursor = db["inventory_db"].forum_posts.find().sort("created_at", -1)
+    posts = await posts_cursor.to_list(length=100)
+    return posts
+
+
+@community_router.get("/leaderboard", summary="Get the user leaderboard")
+async def get_leaderboard():
+    users_cursor = db["inventory_db"].users.find().sort("points", -1).limit(10)
+    leaderboard = await users_cursor.to_list(length=10)
+    return [{"name": user["name"], "points": user["points"]} for user in leaderboard]
+
+
+@community_router.post("/recipes/{user_id}", summary="Post a new recipe")
+async def create_community_recipe(user_id: str, recipe_data: CommunityRecipeCreate):
+    users_collection = db["inventory_db"].users
+    await users_collection.update_one({"_id": user_id}, {"$inc": {"points": 5}})
+
+    new_recipe = CommunityRecipe(user_id=user_id, **recipe_data.model_dump())
+
+    await db["inventory_db"].community_recipes.insert_one(new_recipe.model_dump(by_alias=True))
+    return {"message": "Recipe shared successfully! You earned 5 points."}
+
+
+@community_router.post("/recipes/{recipe_id}/upvote/{user_id}", summary="Upvote a recipe")
+async def upvote_recipe(recipe_id: str, user_id: str):
+    recipes_collection = db["inventory_db"].community_recipes
+
+    recipe = await recipes_collection.find_one({"_id": recipe_id, "upvoted_by": user_id})
+    if recipe:
+        raise HTTPException(status_code=400, detail="You have already upvoted this recipe.")
+
+    result = await recipes_collection.update_one(
+        {"_id": recipe_id},
+        {"$inc": {"upvotes": 1}, "$push": {"upvoted_by": user_id}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Recipe not found.")
+
+    recipe_author = await recipes_collection.find_one({"_id": recipe_id})
+    author_id = recipe_author.get("user_id")
+    if author_id and author_id != user_id:
+        await db["inventory_db"].users.update_one({"_id": author_id}, {"$inc": {"points": 1}})
+
+    return {"message": "Recipe upvoted!"}
+
+
+@community_router.post("/forum/{user_id}", summary="Create a new forum post")
+async def create_forum_post(user_id: str, post_data: ForumPostCreate):
+    new_post = ForumPost(user_id=user_id, **post_data.model_dump())
+    await db["inventory_db"].forum_posts.insert_one(new_post.model_dump(by_alias=True))
+    return {"message": "Post created successfully."}
+
+
+@community_router.post("/forum/{post_id}/answer/{user_id}", summary="Add an answer to a post")
+async def add_forum_answer(post_id: str, user_id: str, answer_data: ForumAnswerCreate):
+    new_answer = ForumAnswer(user_id=user_id, **answer_data.model_dump())
+    result = await db["inventory_db"].forum_posts.update_one(
+        {"_id": post_id},
+        {"$push": {"answers": new_answer.model_dump()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    return {"message": "Answer posted successfully."}
+
+
+# 3. Add this line at the very end of your main.py file to activate the router
+app.include_router(community_router)

@@ -8,6 +8,11 @@
     <script src="theme-loader.js"></script>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .modal-open { overflow: hidden; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+    </style>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -15,11 +20,8 @@
                 extend: {
                     fontFamily: { 'inter': ['Inter', 'sans-serif'] },
                     colors: {
-                        'green': {
-                            50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
-                            400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d',
-                            800: '#166534', 900: '#14532d',
-                        }
+                        'green': { 50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac', 400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d' },
+                        'offwhite' :{50: '#F2F0EF'}
                     }
                 }
             }
@@ -27,7 +29,6 @@
     </script>
 </head>
 <body class="font-inter bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-    <!-- Navigation -->
     <nav class="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-green-100 dark:border-gray-800 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
@@ -55,88 +56,93 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
     <section class="pt-20 pb-16 bg-gradient-to-br from-green-50 to-white dark:from-gray-900 dark:to-gray-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
-                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                    Community Hub
-                    <span class="text-green-600 dark:text-green-400">Connect & Share</span>
-                </h1>
-                <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-                    Join a vibrant community of sustainable living enthusiasts. Share recipes, gardening tips,
-                    and earn badges as you master the art of farm-to-table living.
-                </p>
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">Community Hub <span class="text-green-600 dark:text-green-400">Connect & Share</span></h1>
+                <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">Join a vibrant community of sustainable living enthusiasts. Share recipes, gardening tips, and earn points as you engage with others.</p>
             </div>
         </div>
     </section>
 
-    <!-- Community Hub Section -->
     <section class="py-16 bg-white dark:bg-gray-900">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Connect, Share, and Grow Together</h2>
-                <p class="text-xl text-gray-600 dark:text-gray-400">Join Our Sustainable Living Community</p>
+            <div class="border-b border-gray-200 dark:border-gray-700 mb-8">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-green-600 border-green-500" data-tab="recipes">Shared Recipes</button>
+                    <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="forum">Discussion Forum</button>
+                    <button class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="leaderboard">Leaderboard</button>
+                </nav>
             </div>
-
-            <div class="grid md:grid-cols-3 gap-8">
-                <!-- Upvote Recipes Card -->
-                <div class="feature-card">
-                    <div class="bg-green-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">Upvote Recipes</h3>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">Rate and discover the best community-created recipes from around the world.</p>
-                </div>
-
-                <!-- Share Tips Card -->
-                <div class="feature-card">
-                    <div class="bg-green-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">Share Tips</h3>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">Share your gardening wisdom and cooking tips with the community.</p>
-                </div>
-
-                <!-- Earn Badges Card -->
-                <div class="feature-card">
-                    <div class="bg-green-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">Earn Badges</h3>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">Unlock achievements as you master sustainable cooking and gardening.</p>
-                </div>
+            <div>
+                <div id="recipes-panel" class="tab-panel"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Community Recipes</h2><button id="share-recipe-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">Share a Recipe</button></div><div id="recipes-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"></div></div>
+                <div id="forum-panel" class="tab-panel hidden"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Discussions</h2><button id="ask-question-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">Ask a Question</button></div><div id="forum-container" class="space-y-4"></div></div>
+                <div id="leaderboard-panel" class="tab-panel hidden max-w-2xl mx-auto"><h2 class="text-2xl font-bold text-center mb-6">Top Harvesters</h2><div id="leaderboard-container" class="space-y-3"></div></div>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
+    <div id="share-recipe-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[60] p-4 animate-fade-in">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b dark:border-gray-700">
+                <h3 class="text-xl font-bold">Share Your Recipe</h3>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <form id="share-recipe-form" class="space-y-4">
+                    <div><label class="block text-sm font-medium">Recipe Name</label>
+                        <input type="text" id="recipe-name" required class="mt-1 block border-pink-500 h-8 w-full input bg-offwhite-50  shadow-l dark : bg-gray-700 border-gray-600 rounded-md shadow-sm px-2">
+                    </div>
+                    <div><label class="block text-sm font-medium">Description</label>
+                        <textarea id="recipe-description" required rows="2" class="mt-1 block w-full input bg-offwhite-50 dark : bg-gray-700 border-gray-600 rounded-md shadow-sm flex-grow"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Diet Type</label>
+                        <select id="recipe-diet-type" class="mt-1 h-8 block w-full input bg-offwhite-50 dark:bg-gray-700 border-gray-600 rounded-md shadow-sm flex-grow">
+                            <option>Veg</option>
+                            <option>Non-Veg</option>
+                            <option>Vegan</option>
+                        </select>
+                    </div>
+                    <div class="pt-2 ">
+                        <h4 class="font-semibold mb-2">Ingredients</h4>
+                        <div id="ingredients-list" class="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        </div>
+                        <button type="button" id="add-ingredient-btn" class="mt-2 text-sm text-green-600 hover:underline">+ Add Ingredient</button>
+                    </div>
+                    <div class="pt-2"><h4 class="font-semibold mb-2">Instructions</h4>
+                        <div id="instructions-list" class="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        </div>
+                        <button type="button" id="add-instruction-btn" class="mt-2 text-sm text-green-600 hover:underline">+ Add Instruction</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="p-4 mt-auto bg-gray-50 dark:bg-gray-800 border-t dark:border-gray-700 flex justify-end gap-4">
+                <button type="button" class="modal-cancel-btn bg-gray-200 dark:bg-red-600 font-medium py-2 px-4 rounded-lg">Cancel</button>
+                <button type="submit" form="share-recipe-form" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">Post Recipe</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-recipe-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[60] p-4 animate-fade-in"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col"><div class="flex justify-between items-center p-4 border-b dark:border-gray-700"><h2 id="view-recipe-title" class="text-2xl font-bold">Recipe</h2><button class="modal-close-btn text-gray-500 hover:text-gray-800 text-3xl">&times;</button></div><div class="p-6 overflow-y-auto"><p class="text-sm text-gray-500 mb-1" id="view-recipe-author"></p><p class="mb-6" id="view-recipe-description"></p><div class="grid md:grid-cols-2 gap-6"><div_><h4 class="font-bold text-lg mb-2">Ingredients</h4><ul id="view-recipe-ingredients" class="list-disc list-inside space-y-1"></ul></div><div><h4 class="font-bold text-lg mb-2">Instructions</h4><ol id="view-recipe-instructions" class="list-decimal list-inside space-y-2"></ol></div></div></div><div id="view-recipe-footer" class="p-4 mt-auto"></div></div></div>
+
+    <div id="ask-question-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[60] p-4 animate-fade-in"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg"><div class="p-6"><h3 class="text-xl font-bold mb-4">Ask a Question</h3><form id="ask-question-form" class="space-y-4"><div><label class="block text-sm font-medium">Title</label><input type="text" id="question-title" required class="mt-1 block w-full input"></div><div><label class="block text-sm font-medium">Question</label><textarea id="question-content" required rows="4" class="mt-1 block w-full input"></textarea></div><div class="mt-6 flex justify-end gap-4"><button type="button" class="modal-cancel-btn bg-gray-200 dark:bg-gray-600 font-medium py-2 px-4 rounded-lg">Cancel</button><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">Post Question</button></div></form></div></div></div>
+
+    <div id="view-post-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[60] p-4 animate-fade-in"><div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col"><div class="flex justify-between items-center p-4 border-b dark:border-gray-700"><h2 id="view-post-title" class="text-2xl font-bold">Discussion</h2><button class="modal-close-btn text-gray-500 hover:text-gray-800 text-3xl">&times;</button></div><div class="p-6 overflow-y-auto"><p class="text-sm text-gray-500 mb-1" id="view-post-author"></p><div class="prose dark:prose-invert max-w-none" id="view-post-content"></div><hr class="my-6"><h3 class="text-lg font-bold mb-4">Answers</h3><div id="view-post-answers" class="space-y-4"></div><form id="add-answer-form" class="mt-6 pt-6 border-t dark:border-gray-700"><h4 class="font-semibold mb-2">Your Answer</h4><textarea id="answer-content" required rows="3" class="w-full input"></textarea><button type="submit" class="mt-2 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">Submit Answer</button></form></div></div></div>
+
+    <div id="loader-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[70]"><div class="text-center text-white"><div style="border:4px solid #fff3;border-top-color:#fff;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite" class="mx-auto"></div><p id="loader-text" class="mt-4 text-lg"></p></div></div>
+    <hr>
     <footer class="bg-white-900 text-white py-12 dark:bg-gray-900">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
-                <h3 class="text-2xl font-bold text-green-500 mb-4 dark : text-2xl font-bold text-green-400 mb-4">🌱 HomeHarvest AI</h3>
-                <p class="text-gray-800 mb-6 dark:text-gray-400 mb-6">From Garden to Table, Powered by AI</p>
-                <div class="flex justify-center space-x-6 mb-6">
-                    <a href="#" class="text-gray-400 hover:text-green-400 transition-colors">
-                        <span class="sr-only">Twitter</span>
-                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"></path>
-                        </svg>
-                    </a>
-                </div>
+                <h3 class="text-2xl font-bold text-green-400 mb-4">🌱 HomeHarvest AI</h3>
+                <p class="text-gray-400 mb-6">From Garden to Table, Powered by AI</p>
                 <div class="border-t border-gray-800 pt-6">
                     <p class="text-gray-400">&copy; 2025 HomeHarvest AI. All rights reserved.</p>
                 </div>
             </div>
         </div>
     </footer>
-
     <script src="script.js"></script>
 </body>
 </html>

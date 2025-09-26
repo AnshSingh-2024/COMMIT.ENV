@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
-from bson import ObjectId
+from bson import ObjectId # <--- ADD THIS IMPORT
 from typing import Optional, List
 from passlib.context import CryptContext
+from datetime import datetime # <--- ADD THIS IMPORT
 
 # --- Password Hashing ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -22,6 +23,7 @@ class User(BaseModel):
     email: str
     hashed_password: str
     dietary_preference: Optional[str] = "Veg"
+    points: int = 0
 
     class Config:
         populate_by_name = True
@@ -37,6 +39,30 @@ class UserInventory(BaseModel):
     id: str = Field(alias="_id", default_factory=lambda: str(ObjectId()))
     user_id: str
     items: list[InventoryItem] = []
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {ObjectId: str}
+
+# --- Garden Models ---
+
+class PlantRecommendation(BaseModel):
+    title: str
+    steps: List[str]
+    purchasable_items: Optional[List[str]] = []
+
+class PlantHistoryEntry(BaseModel):
+    entry_id: str = Field(default_factory=lambda: str(ObjectId()))
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    image_path: str
+    diagnosis: str
+    recommendations: List[PlantRecommendation]
+
+class Plant(BaseModel):
+    id: str = Field(alias="_id", default_factory=lambda: str(ObjectId()))
+    user_id: str
+    plant_name: str
+    history: List[PlantHistoryEntry] = []
 
     class Config:
         populate_by_name = True
@@ -81,3 +107,65 @@ class InventoryItemUpdate(BaseModel):
 
 class IngredientsList(BaseModel):
     ingredients: List[str]
+
+class PlantCreate(BaseModel):
+    plant_name: str
+
+class CommunityRecipeIngredient(BaseModel):
+    name: str
+    quantity: str
+
+class CommunityRecipe(BaseModel):
+    id: str = Field(alias="_id", default_factory=lambda: str(ObjectId()))
+    user_id: str
+    author_name: str
+    recipe_name: str
+    description: str
+    diet_type: str  # "Veg", "Non-Veg", etc.
+    ingredients: List[CommunityRecipeIngredient]
+    instructions: List[str]
+    upvotes: int = 0
+    upvoted_by: List[str] = []
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {ObjectId: str}
+
+class ForumAnswer(BaseModel):
+    id: str = Field(alias="_id", default_factory=lambda: str(ObjectId()))
+    user_id: str
+    author_name: str
+    content: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ForumPost(BaseModel):
+    id: str = Field(alias="_id", default_factory=lambda: str(ObjectId()))
+    user_id: str
+    author_name: str
+    title: str
+    content: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    answers: List[ForumAnswer] = []
+
+class Config:
+    populate_by_name = True
+    json_encoders = {ObjectId: str}
+
+class CommunityRecipeCreate(BaseModel):
+    author_name: str
+    recipe_name: str
+    description: str
+    diet_type: str
+    ingredients: List[CommunityRecipeIngredient]
+    instructions: List[str]
+
+class ForumPostCreate(BaseModel):
+    author_name: str
+    title: str
+    content: str
+
+class ForumAnswerCreate(BaseModel):
+    author_name: str
+    content: str
+

@@ -8,7 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const path = window.location.pathname;
     if (path.endsWith('login.html')) initializeLoginPage();
     else if (path.endsWith('kitchen.html')) initializeKitchenPage();
+    else if (path.endsWith('garden.html')) initializeGardenPage();
     else if (path.endsWith('account.html')) initializeAccountPage();
+    else if (path.endsWith('community.html')) initializeCommunityPage();
     initializeGlobalElements();
 
 
@@ -207,6 +209,213 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+async function initializeCommunityPage() {
+    const user = getSession();
+    if (!user) {
+        const communityHub = document.querySelector('.py-16');
+        if (communityHub) {
+            communityHub.innerHTML = `<div class="text-center"><p class="text-lg">Please <a href="login.html" class="text-green-500 underline">log in</a> to access the community hub.</p></div>`;
+        }
+        return;
+    }
+
+    // --- DOM ELEMENT REFERENCES ---
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.tab-panel');
+    const modals = {
+        shareRecipe: document.getElementById('share-recipe-modal'),
+        viewRecipe: document.getElementById('view-recipe-modal'),
+        askQuestion: document.getElementById('ask-question-modal'),
+        viewPost: document.getElementById('view-post-modal'),
+    };
+    const recipesContainer = document.getElementById('recipes-container');
+    const shareRecipeForm = document.getElementById('share-recipe-form');
+    const leaderboardContainer = document.getElementById('leaderboard-container');
+    const forumContainer = document.getElementById('forum-container');
+
+    // --- HELPER FUNCTIONS ---
+    const openModal = (modal) => modal && modal.classList.replace('hidden', 'flex');
+    const closeModal = (modal) => modal && modal.classList.replace('flex', 'hidden');
+
+    const addItem = (listId, placeholder) => {
+        const list = document.getElementById(listId);
+        if (!list) return;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'flex items-center gap-2';
+        const inputClasses = "mt-1 block w-full border-gray-300 py-2 bg-offwhite-50 px-4 dark:bg-gray-700 dark:border-gray-600 rounded-md shadow-sm";
+        itemDiv.innerHTML = (placeholder === 'Ingredient Name')
+            ? `<input type="text" placeholder="${placeholder}" class="${inputClasses} flex-grow ingredient-name"><input type="text" placeholder="Quantity" class="${inputClasses} flex-grow ingredient-qty"><button type="button" class="remove-item-btn text-red-500 font-bold text-xl">&times;</button>`
+            : `<input type="text" placeholder="Step description" class="${inputClasses} flex-grow instruction-step"><button type="button" class="remove-item-btn text-red-500 font-bold text-xl">&times;</button>`;
+        list.appendChild(itemDiv);
+    };
+
+    const resetRecipeForm = () => {
+        const ingredientsList = document.getElementById('ingredients-list');
+        const instructionsList = document.getElementById('instructions-list');
+        if (shareRecipeForm) shareRecipeForm.reset();
+        if (ingredientsList) ingredientsList.innerHTML = '';
+        if (instructionsList) instructionsList.innerHTML = '';
+        addItem('ingredients-list', 'Ingredient Name');
+        addItem('instructions-list', 'Instruction');
+    };
+
+    // --- DATA FETCHING AND RENDERING ---
+    const renderRecipes = (recipes) => {
+        if (!recipesContainer) return;
+        if (recipes.length === 0) {
+            recipesContainer.innerHTML = '<p class="col-span-full">No community recipes shared yet. Be the first!</p>';
+            return;
+        }
+        recipesContainer.innerHTML = recipes.map(recipe => `
+            <div class="feature-card flex flex-col">
+                <h3 class="text-xl font-semibold">${recipe.recipe_name}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">by ${recipe.author_name}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-300 mt-2 flex-grow">${recipe.description.substring(0, 100)}...</p>
+                <div class="flex justify-between items-center mt-4">
+                    <button data-recipe-id="${recipe._id}" class="upvote-btn text-gray-500 hover:text-green-500 flex items-center gap-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" ${recipe.upvoted_by.includes(user.user_id) ? 'disabled' : ''}>
+                        <svg class="w-5 h-5" fill="${recipe.upvoted_by.includes(user.user_id) ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                        <span>${recipe.upvotes}</span>
+                    </button>
+                    <button data-recipe='${JSON.stringify(recipe)}' class="view-recipe-btn text-green-600 hover:underline">View Recipe</button>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    const fetchAndDisplayRecipes = async () => {
+        if (!recipesContainer) return;
+        recipesContainer.innerHTML = '<p class="col-span-full">Loading recipes...</p>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/community/recipes`);
+            const recipes = await response.json();
+            renderRecipes(recipes);
+        } catch (error) {
+            recipesContainer.innerHTML = '<p class="col-span-full text-red-500">Could not load recipes.</p>';
+        }
+    };
+
+    const fetchAndDisplayForum = async () => {
+        if (!forumContainer) return;
+        forumContainer.innerHTML = '<p class="text-center">Discussion forum is a work in progress and will be available soon!</p>';
+    };
+
+    const fetchAndDisplayLeaderboard = async () => {
+        if (!leaderboardContainer) return;
+        leaderboardContainer.innerHTML = '<p>Loading leaderboard...</p>';
+        try {
+            const response = await fetch(`${API_BASE_URL}/community/leaderboard`);
+            const leaderboard = await response.json();
+            leaderboardContainer.innerHTML = leaderboard.map((player, index) => `
+                <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                    <div class="flex items-center gap-4"><span class="font-bold text-lg text-green-500 w-6">${index + 1}</span><span class="font-medium">${player.name}</span></div>
+                    <span class="font-bold text-gray-700 dark:text-gray-300">${player.points} points</span>
+                </div>
+            `).join('');
+        } catch (error) {
+            leaderboardContainer.innerHTML = '<p class="text-red-500">Could not load leaderboard.</p>';
+        }
+    };
+
+    // --- EVENT LISTENERS ---
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('text-green-600', 'border-green-500'));
+            panels.forEach(p => p.classList.add('hidden'));
+            tab.classList.add('text-green-600', 'border-green-500');
+            const panel = document.getElementById(`${tab.dataset.tab}-panel`);
+            if (panel) panel.classList.remove('hidden');
+            loadTabData(tab.dataset.tab);
+        });
+    });
+
+    const loadTabData = (tab) => {
+        if (tab === 'recipes') fetchAndDisplayRecipes();
+        else if (tab === 'forum') fetchAndDisplayForum();
+        else if (tab === 'leaderboard') fetchAndDisplayLeaderboard();
+    };
+
+    document.getElementById('share-recipe-btn')?.addEventListener('click', () => {
+        resetRecipeForm();
+        openModal(modals.shareRecipe);
+    });
+    document.getElementById('ask-question-btn')?.addEventListener('click', () => openModal(modals.askQuestion));
+
+    Object.values(modals).forEach(modal => {
+        if (!modal) return;
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.closest('.modal-cancel-btn') || e.target.closest('.modal-close-btn')) {
+                closeModal(modal);
+            }
+        });
+    });
+
+    document.getElementById('add-ingredient-btn')?.addEventListener('click', () => addItem('ingredients-list', 'Ingredient Name'));
+    document.getElementById('add-instruction-btn')?.addEventListener('click', () => addItem('instructions-list', 'Instruction'));
+    document.getElementById('ingredients-list')?.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-item-btn')) e.target.parentElement.remove();
+    });
+    document.getElementById('instructions-list')?.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-item-btn')) e.target.parentElement.remove();
+    });
+
+    shareRecipeForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLoader('Posting your recipe...');
+        const ingredients = Array.from(document.querySelectorAll('#ingredients-list > div')).map(div => ({
+            name: div.querySelector('.ingredient-name').value,
+            quantity: div.querySelector('.ingredient-qty').value,
+        })).filter(i => i.name && i.quantity);
+        const instructions = Array.from(document.querySelectorAll('#instructions-list > div')).map(div =>
+            div.querySelector('.instruction-step').value
+        ).filter(Boolean);
+        const payload = { author_name: user.name, recipe_name: document.getElementById('recipe-name').value, description: document.getElementById('recipe-description').value, diet_type: document.getElementById('recipe-diet-type').value, ingredients, instructions };
+        try {
+            const response = await fetch(`${API_BASE_URL}/community/recipes/${user.user_id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail);
+            showNotification(data.message, 'success');
+            closeModal(modals.shareRecipe);
+            fetchAndDisplayRecipes();
+            fetchAndDisplayLeaderboard();
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            hideLoader();
+        }
+    });
+
+    document.body.addEventListener('click', async (e) => {
+        const upvoteBtn = e.target.closest('.upvote-btn');
+        const viewRecipeBtn = e.target.closest('.view-recipe-btn');
+        if (upvoteBtn) {
+            const recipeId = upvoteBtn.dataset.recipeId;
+            upvoteBtn.disabled = true;
+            try {
+                const response = await fetch(`${API_BASE_URL}/community/recipes/${recipeId}/upvote/${user.user_id}`, { method: 'POST' });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+                showNotification(data.message, 'success');
+                fetchAndDisplayRecipes();
+                fetchAndDisplayLeaderboard();
+            } catch (error) {
+                showNotification(error.message, 'error');
+                upvoteBtn.disabled = false;
+            }
+        }
+        if (viewRecipeBtn) {
+            const recipe = JSON.parse(viewRecipeBtn.dataset.recipe);
+            document.getElementById('view-recipe-title').textContent = recipe.recipe_name;
+            document.getElementById('view-recipe-author').textContent = `By ${recipe.author_name}`;
+            document.getElementById('view-recipe-description').textContent = recipe.description;
+            document.getElementById('view-recipe-ingredients').innerHTML = recipe.ingredients.map(i => `<li>${i.quantity} ${i.name}</li>`).join('');
+            document.getElementById('view-recipe-instructions').innerHTML = recipe.instructions.map(s => `<li>${s}</li>`).join('');
+            openModal(modals.viewRecipe);
+        }
+    });
+
+    // --- INITIAL PAGE LOAD ---
+    loadTabData('recipes');
+}
 
     async function initializeAccountPage() {
         const user = getSession();
@@ -597,7 +806,260 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok) dietSelector.value = userData.dietary_preference;
         } catch (error) { console.error("Could not load user diet preference."); }
     }
+    async function initializeGardenPage() {
+        const user = getSession();
+        if (!user) return;
 
+        let currentPlants = [];
+        const gardenContainer = document.getElementById('garden-container');
+        const gardenPlaceholder = document.getElementById('garden-placeholder');
+        const careRemindersContainer = document.getElementById('care-reminders-container');
+        const remindersPlaceholder = document.getElementById('reminders-placeholder');
+
+        // --- MODAL & FORM ELEMENTS ---
+        const addPlantModal = document.getElementById('add-plant-modal');
+        const detailsModal = document.getElementById('plant-details-modal');
+        const guideModal = document.getElementById('guide-modal');
+        const addPlantForm = document.getElementById('add-plant-form');
+        const diagnoseForm = document.getElementById('diagnose-plant-form');
+        const guideModalTitle = document.getElementById('guide-modal-title');
+        const guideModalSteps = document.getElementById('guide-modal-steps');
+
+        // --- MODAL CONTROL FUNCTIONS ---
+        const openModal = (modal) => {
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                document.body.classList.add('modal-open');
+            }
+        };
+
+        const closeModal = (modal) => {
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.classList.remove('modal-open');
+            }
+        };
+
+        // --- ROBUST EVENT LISTENER SETUP ---
+        // This helper function prevents crashes if an element is not found.
+        const addSafeListener = (selector, event, handler) => {
+            const element = document.getElementById(selector);
+            if (element) {
+                element.addEventListener(event, handler);
+            }
+        };
+
+        // Event Listeners for Opening/Closing Modals
+        addSafeListener('add-plant-btn', 'click', () => openModal(addPlantModal));
+        addSafeListener('add-plant-cancel', 'click', () => closeModal(addPlantModal));
+        addSafeListener('details-modal-close', 'click', () => closeModal(detailsModal));
+        addSafeListener('guide-modal-close', 'click', () => closeModal(guideModal));
+
+        // Background clicks to close modals
+        if (addPlantModal) addPlantModal.addEventListener('click', (e) => { if (e.target === addPlantModal) closeModal(addPlantModal); });
+        if (detailsModal) detailsModal.addEventListener('click', (e) => { if (e.target === detailsModal) closeModal(detailsModal); });
+        if (guideModal) guideModal.addEventListener('click', (e) => { if (e.target === guideModal) closeModal(guideModal); });
+
+
+        // --- DATA FETCHING & DISPLAY ---
+        const fetchAndDisplayGarden = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/garden/${user.user_id}`);
+                if (!response.ok) throw new Error('Could not fetch garden data.');
+                currentPlants = await response.json();
+
+                if (gardenContainer && gardenPlaceholder) {
+                    gardenContainer.innerHTML = ''; // Clear existing content
+                    if (currentPlants.length === 0) {
+                        gardenContainer.appendChild(gardenPlaceholder);
+                        gardenPlaceholder.classList.remove('hidden');
+                    } else {
+                        gardenPlaceholder.classList.add('hidden');
+                        currentPlants.forEach(plant => {
+                            const latestHistory = plant.history[plant.history.length - 1];
+                            const card = document.createElement('div');
+                            card.className = 'feature-card cursor-pointer text-center';
+                            card.dataset.plantId = plant._id;
+                            card.innerHTML = `
+                                <img src="${API_BASE_URL}/${latestHistory.image_path}" alt="${plant.plant_name}" class="w-full h-40 object-cover rounded-md mb-4">
+                                <h3 class="text-lg font-semibold">${plant.plant_name}</h3>
+                            `;
+                            card.addEventListener('click', () => openDetailsModal(plant._id));
+                            gardenContainer.appendChild(card);
+                        });
+                    }
+                }
+            } catch (error) {
+                showNotification(error.message, 'error');
+                if (gardenPlaceholder) {
+                    gardenPlaceholder.textContent = 'Error loading your garden.';
+                    gardenPlaceholder.classList.remove('hidden');
+                }
+            }
+        };
+
+        const openDetailsModal = (plantId) => {
+            const plant = currentPlants.find(p => p._id === plantId);
+            if (!plant) return;
+            const detailsModalTitle = document.getElementById('details-modal-title');
+            const historyContainer = document.getElementById('plant-history-container');
+
+            if (detailsModalTitle) detailsModalTitle.textContent = plant.plant_name;
+            if (diagnoseForm) diagnoseForm.dataset.plantId = plantId;
+            if (historyContainer) {
+                historyContainer.innerHTML = '';
+                 [...plant.history].reverse().forEach(entry => {
+                    const entryDate = new Date(entry.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+                    const historyElement = document.createElement('div');
+                    historyElement.className = 'relative pl-8';
+                    historyElement.innerHTML = `
+                        <div class="absolute w-4 h-4 bg-green-500 rounded-full -left-[9px] top-1 border-4 border-white dark:border-gray-800"></div>
+                        <p class="font-semibold text-gray-800 dark:text-gray-200">${entry.diagnosis}</p>
+                        <time class="text-xs text-gray-500 dark:text-gray-400 mb-2 block">${entryDate}</time>
+                        <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-300">
+                            ${entry.recommendations.map(rec => {
+                                if (typeof rec === 'object' && rec !== null && rec.title) {
+                                    return `<li>${rec.title}</li>`;
+                                }
+                                return `<li>${rec}</li>`;
+                            }).join('')}
+                        </ul>
+                    `;
+                    historyContainer.appendChild(historyElement);
+                });
+            }
+            openModal(detailsModal);
+        };
+
+        const displayLatestRecommendations = () => {
+             const shopButtonContainer = document.getElementById('shop-button-container');
+            if(shopButtonContainer) shopButtonContainer.innerHTML = '';
+
+            const allRecommendations = currentPlants.flatMap(plant => {
+                const latestHistory = plant.history[plant.history.length - 1];
+                if (!latestHistory || !latestHistory.recommendations) return [];
+                return latestHistory.recommendations.map(rec => ({ ...rec, plantName: plant.plant_name }));
+            });
+
+            const purchasableItems = [...new Set(allRecommendations.flatMap(rec => rec.purchasable_items || []))];
+
+            if (careRemindersContainer && remindersPlaceholder) {
+                 if(allRecommendations.length > 0) {
+                    remindersPlaceholder.classList.add('hidden');
+                    careRemindersContainer.innerHTML = allRecommendations.map(item => {
+                        const stepsJson = JSON.stringify(item.steps);
+                        return `
+                            <div class="bg-green-50 dark:bg-green-900/50 p-3 rounded-lg cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/80 transition-colors recommendation-item"
+                                data-title="${item.title}" data-steps='${stepsJson}'>
+                                <p class="font-semibold text-green-800 dark:text-green-200">${item.plantName}</p>
+                                <p class="text-sm text-gray-700 dark:text-gray-300 pointer-events-none">${item.title}</p>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    remindersPlaceholder.classList.remove('hidden');
+                    careRemindersContainer.innerHTML = '';
+                }
+            }
+
+            if (shopButtonContainer && purchasableItems.length > 0) {
+                const shopBtn = document.createElement('button');
+                shopBtn.id = 'shop-garden-items-btn';
+                shopBtn.className = 'w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2';
+                shopBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg> <span>Shop for Supplies</span>`;
+                shopButtonContainer.appendChild(shopBtn);
+                shopBtn.addEventListener('click', async () => {
+                    showLoader('Finding items on Amazon...');
+                    const shoppingPayload = { "additionalProp1": {} };
+                    purchasableItems.forEach(item => { shoppingPayload.additionalProp1[item] = 1; });
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/shopping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(shoppingPayload) });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.detail || 'Failed to get shopping link.');
+                        window.open(data.cart_url, '_blank');
+                    } catch (error) { showNotification(error.message, 'error'); }
+                    finally { hideLoader(); }
+                });
+            }
+        };
+
+        if (careRemindersContainer) {
+            careRemindersContainer.addEventListener('click', (e) => {
+                const item = e.target.closest('.recommendation-item');
+                if (!item || !guideModal || !guideModalTitle || !guideModalSteps) return;
+                const title = item.dataset.title;
+                const steps = JSON.parse(item.dataset.steps);
+                guideModalTitle.textContent = title;
+                guideModalSteps.innerHTML = steps.map(step => `<li>${step}</li>`).join('');
+                openModal(guideModal);
+            });
+        }
+
+        // --- FORM SUBMISSION HANDLERS ---
+        if (addPlantForm) {
+            addPlantForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const plantNameInput = document.getElementById('plant-name');
+                const plantImageInput = document.getElementById('plant-image-upload');
+                if (!plantNameInput.value || !plantImageInput.files[0]) {
+                    showNotification('Please provide a name and an image.', 'error');
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('plant_name', plantNameInput.value);
+                formData.append('file', plantImageInput.files[0]);
+                showLoader('Adding plant to your garden...');
+                try {
+                    const response = await fetch(`${API_BASE_URL}/garden/${user.user_id}`, { method: 'POST', body: formData });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+                    showNotification(data.message, 'success');
+                    addPlantForm.reset();
+                    closeModal(addPlantModal);
+                    await fetchAndDisplayGarden();
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                } finally {
+                    hideLoader();
+                }
+            });
+        }
+
+        if (diagnoseForm) {
+            diagnoseForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const plantId = e.currentTarget.dataset.plantId;
+                const diagnoseImageInput = document.getElementById('diagnose-image-upload');
+                if (!diagnoseImageInput.files[0]) {
+                    showNotification('Please select an image to analyze.', 'error');
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('file', diagnoseImageInput.files[0]);
+                showLoader('Analyzing your plant...');
+                try {
+                    const response = await fetch(`${API_BASE_URL}/garden/diagnose/${plantId}`, { method: 'POST', body: formData });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+                    showNotification(data.message, 'success');
+                    diagnoseForm.reset();
+                    closeModal(detailsModal);
+                    await fetchAndDisplayGarden();
+                    displayLatestRecommendations();
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                } finally {
+                    hideLoader();
+                }
+            });
+        }
+
+        // --- INITIAL PAGE LOAD ---
+        await fetchAndDisplayGarden();
+        displayLatestRecommendations();
+    }
     // --- Helper Functions ---
     function showNotification(message, type = 'info') {
         const existing = document.querySelector('.notification');
