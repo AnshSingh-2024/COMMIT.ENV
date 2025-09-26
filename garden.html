@@ -25,7 +25,8 @@
                             50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac',
                             400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d',
                             800: '#166534', 900: '#14532d',
-                        }
+                        },
+                        'offwhite':{50:'#F2F0EF'}
                     }
                 }
             }
@@ -129,7 +130,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
              <div class="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
                 <h2 id="details-modal-title" class="text-2xl font-bold">Plant Details</h2>
-                <button id="details-modal-close" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                <button id="details-modal-close" class="text-gray-500 hover:text-white text-3xl">&times;</button>
             </div>
 
             <div class="p-6 overflow-y-auto">
@@ -155,7 +156,7 @@
                         <div class="text-center text-sm text-gray-500">Ask a question like "How can I get brighter flowers?"</div>
                     </div>
                     <form id="chat-form" class="flex items-center gap-2">
-                        <input type="text" id="chat-input" placeholder="Ask about your plant..." class="mt-1 block w-full rounded-md border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-green-500 focus:ring-green-500 transition flex-grow" required>
+                        <input type="text" id="chat-input" placeholder="Ask about your plant..." class="mt-1 block w-full rounded-md border-gray-300 bg-offwhite-50 px-2 py-2 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-green-500 focus:ring-green-500 transition flex-grow" required>
                         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">Send</button>
                     </form>
                 </div>
@@ -166,7 +167,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
                 <h2 id="guide-modal-title" class="text-xl font-bold">Care Guide</h2>
-                <button id="guide-modal-close" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+                <button id="guide-modal-close" class="text-gray-500 hover:text-white text-3xl">&times;</button>
             </div>
             <div class="p-6 overflow-y-auto">
                 <ol id="guide-modal-steps" class="list-decimal list-inside space-y-3 text-gray-700 dark:text-gray-300">

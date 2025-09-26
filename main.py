@@ -483,13 +483,6 @@ async def toggle_upvote_recipe(recipe_id: str, user_id: str):
             await users_collection.update_one({"_id": author_id}, {"$inc": {"points": 1}})
         return {"message": "Recipe upvoted!"}
 
-@community_router.get("/forum", summary="Get all visible forum posts")
-async def get_all_forum_posts():
-    # Only fetch posts that are not hidden
-    posts_cursor = db["inventory_db"].forum_posts.find({"hidden": False}).sort("created_at", -1)
-    posts = await posts_cursor.to_list(length=100)
-    return posts
-
 
 @community_router.post("/forum/{user_id}", summary="Create a new forum post")
 async def create_forum_post(user_id: str, post_data: ForumPostCreate):
@@ -570,15 +563,20 @@ async def garden_chat(plant_id: str, payload: GardenChatPayload):
 
     async def stream_generator():
         try:
-            # Use stream=True to get the response in chunks
             response_stream = model.generate_content(prompt, stream=True)
             for chunk in response_stream:
                 yield chunk.text
         except Exception as e:
             yield f"Error: Could not get a response from the AI. {e}"
 
-    return StreamingResponse(stream_generator(), media_type="text/plain")
+    # Add headers to explicitly disable buffering
+    headers = {
+        "Content-Type": "text/plain",
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no"  # Specifically for Nginx/some reverse proxies
+    }
 
+    return StreamingResponse(stream_generator(), headers=headers)
 # --- Helper for Anonymous Alias ---
 async def get_or_create_anonymous_alias(user_id: str):
     users_collection = db["inventory_db"].users

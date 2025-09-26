@@ -1072,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const messageBubble = document.createElement('div');
 
             messageWrapper.className = `w-full flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
-            messageBubble.className = `prose dark:prose-invert max-w-xs md:max-w-md rounded-lg px-4 py-2 ${sender === 'user' ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-600'}`;
+            messageBubble.className = `prose dark:prose-invert max-w-xs md:max-w-md rounded-lg px-4 py-2 ${sender === 'user' ? 'bg-green-500 text-white' : 'bg-gray-200  dark:bg-gray-600'}`;
 
             if (elementId) messageBubble.id = elementId;
             messageBubble.innerHTML = message;
