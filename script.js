@@ -270,6 +270,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             recipesContainer.innerHTML = recipes.map(recipe => {
                 const isUpvoted = recipe.upvoted_by.includes(user.user_id);
+                const canDelete = recipe.user_id === user.user_id || user.role === 'moderator';
+
                 return `
                 <div class="feature-card flex flex-col">
                     <h3 class="text-xl font-semibold">${recipe.recipe_name}</h3>
@@ -280,7 +282,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             <svg class="w-5 h-5 ${isUpvoted ? 'text-green-500' : 'text-gray-400'}" fill="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                             <span class="upvote-count">${recipe.upvotes}</span>
                         </button>
-                        <button data-recipe-id="${recipe._id}" class="view-recipe-btn text-green-600 hover:underline">View Recipe</button>
+                        <div class="flex items-center gap-3">
+                            ${canDelete ? `<button data-recipe-id="${recipe._id}" class="delete-recipe-btn text-xs text-red-500 hover:underline">Delete</button>` : ''}
+                            <button data-recipe-id="${recipe._id}" class="view-recipe-btn text-green-600 hover:underline">View Recipe</button>
+                        </div>
                     </div>
                 </div>
             `}).join('');
@@ -455,11 +460,34 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.addEventListener('click', async (e) => {
             const upvoteBtn = e.target.closest('.upvote-btn');
             const viewRecipeBtn = e.target.closest('.view-recipe-btn');
+            const deleteRecipeBtn = e.target.closest('.delete-recipe-btn'); 
             const viewPostBtn = e.target.closest('.view-post-btn');
             const reportBtn = e.target.closest('.report-post-btn');
             const hideBtn = e.target.closest('.hide-post-btn');
             const reportAnswerBtn = e.target.closest('.report-answer-btn');
             const hideAnswerBtn = e.target.closest('.hide-answer-btn');
+            const removePlantBtn = e.target.closest('.remove-plant-btn');
+            if (removePlantBtn) {
+            const plantId = removePlantBtn.dataset.plantId;
+            if (confirm('Are you sure you want to remove this plant and all its history? This action cannot be undone.')) {
+                showLoader('Removing plant...');
+                try {
+                    const response = await fetch(`${API_BASE_URL}/garden/plant/${plantId}/${user.user_id}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+
+                    showNotification(data.message, 'success');
+                    // Give immediate visual feedback by removing the card
+                    e.target.closest('[data-plant-id-wrapper]').remove();
+                } catch (error) {
+                    showNotification(error.message, 'error');
+                } finally {
+                    hideLoader();
+                }
+            }
+        }
 
             if (upvoteBtn) {
                 const recipeId = upvoteBtn.dataset.recipeId;
@@ -509,6 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('view-recipe-ingredients').innerHTML = recipe.ingredients.map(i => `<li>${i.quantity} ${i.name}</li>`).join('');
                 document.getElementById('view-recipe-instructions').innerHTML = recipe.instructions.map(s => `<li>${s}</li>`).join('');
 
+
                 if (recipeFooter) {
                     recipeFooter.innerHTML = ''; // Clear previous button
                     const shoppingPayload = { "additionalProp1": {} };
@@ -531,6 +560,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 openModal(modals.viewRecipe);
+            }
+            if (deleteRecipeBtn) {
+                const recipeId = deleteRecipeBtn.dataset.recipeId;
+                if (confirm('Are you sure you want to permanently delete this recipe? This will also remove all points awarded for it.')) {
+                    showLoader('Deleting recipe...');
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/community/recipes/${recipeId}/${user.user_id}`, {
+                            method: 'DELETE'
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.detail);
+
+                        showNotification(data.message, 'success');
+                        // Give immediate feedback by removing the card
+                        e.target.closest('.feature-card').remove();
+                        // Refresh the leaderboard to reflect point changes
+                        fetchAndDisplayLeaderboard();
+                    } catch (error) {
+                        showNotification(error.message, 'error');
+                    } finally {
+                        hideLoader();
+                    }
+                }
             }
             if (viewPostBtn) {
                 const post = JSON.parse(viewPostBtn.dataset.post);
@@ -1098,13 +1150,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         currentPlants.forEach(plant => {
                             const latestHistory = plant.history[plant.history.length - 1];
                             const card = document.createElement('div');
-                            card.className = 'feature-card cursor-pointer text-center';
-                            card.dataset.plantId = plant._id;
+                            card.className = 'feature-card text-center relative'; // Added relative positioning
+                            card.dataset.plantIdWrapper = plant._id; // Wrapper for easy removal
                             card.innerHTML = `
-                                <img src="${API_BASE_URL}/${latestHistory.image_path}" alt="${plant.plant_name}" class="w-full h-40 object-cover rounded-md mb-4">
-                                <h3 class="text-lg font-semibold">${plant.plant_name}</h3>
+                                <div class="cursor-pointer" data-plant-id="${plant._id}">
+                                    <img src="${API_BASE_URL}/${latestHistory.image_path}" alt="${plant.plant_name}" class="w-full h-40 object-cover rounded-md mb-4">
+                                    <h3 class="text-lg font-semibold">${plant.plant_name}</h3>
+                                </div>
+                                <button data-plant-id="${plant._id}" class="remove-plant-btn absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors text-xs font-bold">&times;</button>
                             `;
-                            card.addEventListener('click', () => openDetailsModal(plant._id));
+                            // Attach listener to the main div for opening the modal
+                            card.querySelector('.cursor-pointer').addEventListener('click', () => openDetailsModal(plant._id));
                             gardenContainer.appendChild(card);
                         });
                     }
@@ -1117,7 +1173,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         };
-
         const openDetailsModal = (plantId) => {
             const plant = currentPlants.find(p => p._id === plantId);
             if (!plant) return;
@@ -1339,7 +1394,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+        document.body.addEventListener('click', async (e) => {
+            const removePlantBtn = e.target.closest('.remove-plant-btn');
 
+            if (removePlantBtn) {
+                const plantId = removePlantBtn.dataset.plantId;
+                if (confirm('Are you sure you want to remove this plant and all its history? This action cannot be undone.')) {
+                    showLoader('Removing plant...');
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/garden/plant/${plantId}/${user.user_id}`, {
+                            method: 'DELETE'
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.detail);
+
+                        showNotification(data.message, 'success');
+                        // Give immediate visual feedback by removing the card
+                        e.target.closest('[data-plant-id-wrapper]').remove();
+                    } catch (error) {
+                        showNotification(error.message, 'error');
+                    } finally {
+                        hideLoader();
+                    }
+                }
+            }
+        });
         // --- INITIAL PAGE LOAD ---
         await fetchAndDisplayGarden();
         displayLatestRecommendations();

@@ -398,6 +398,37 @@ async def diagnose_plant(plant_id: str, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI processing failed: {e}")
 
+@app.delete("/garden/plant/{plant_id}/{user_id}", summary="Remove a plant from a user's garden")
+async def remove_plant_from_garden(plant_id: str, user_id: str):
+    plants_collection = db["inventory_db"].plants
+
+    # Find the plant to ensure it exists and belongs to the user
+    plant = await plants_collection.find_one({"_id": plant_id})
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found.")
+
+    # Security check: Ensure the user owns this plant
+    if plant.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this plant.")
+
+    # Delete the associated images from the server
+    for entry in plant.get("history", []):
+        image_path = entry.get("image_path")
+        if image_path and os.path.exists(image_path):
+            try:
+                os.remove(image_path)
+            except OSError as e:
+                # Log this error in a real application
+                print(f"Error deleting file {image_path}: {e}")
+
+    # Delete the plant from the database
+    result = await plants_collection.delete_one({"_id": plant_id})
+
+    if result.deleted_count == 1:
+        return {"message": "Plant removed successfully."}
+
+    raise HTTPException(status_code=500, detail="Failed to remove the plant.")
+
     # Make sure to import ForumPostCreate and ForumAnswerCreate from models.
 
 
@@ -468,28 +499,26 @@ async def toggle_upvote_recipe(recipe_id: str, user_id: str):
 
     author_id = recipe.get("user_id")
 
-    # Check if the user is already in the 'upvoted_by' list
     if user_id in recipe.get("upvoted_by", []):
-        # --- User has already upvoted, so REMOVE the upvote ---
         await recipes_collection.update_one(
             {"_id": recipe_id},
             {"$inc": {"upvotes": -1}, "$pull": {"upvoted_by": user_id}}
         )
-        # Subtract a point from the author, unless they are down-voting their own recipe
         if author_id and author_id != user_id:
-            await users_collection.update_one({"_id": author_id}, {"$inc": {"points": -1}})
+            # This new logic ensures the score cannot go below 0
+            await users_collection.update_one(
+                {"_id": author_id},
+                [{"$set": {"points": {"$max": [0, {"$subtract": ["$points", 1]}]}}}]
+            )
         return {"message": "Upvote removed."}
     else:
-        # --- User has NOT upvoted, so ADD the upvote ---
         await recipes_collection.update_one(
             {"_id": recipe_id},
             {"$inc": {"upvotes": 1}, "$push": {"upvoted_by": user_id}}
         )
-        # Add a point to the author, unless they are up-voting their own recipe
         if author_id and author_id != user_id:
             await users_collection.update_one({"_id": author_id}, {"$inc": {"points": 1}})
         return {"message": "Recipe upvoted!"}
-
 
 @community_router.post("/forum/{user_id}", summary="Create a new forum post")
 async def create_forum_post(user_id: str, post_data: ForumPostCreate):
@@ -584,6 +613,37 @@ async def garden_chat(plant_id: str, payload: GardenChatPayload):
     }
 
     return StreamingResponse(stream_generator(), headers=headers)
+
+@community_router.delete("/recipes/{recipe_id}/{user_id}", summary="Delete a community recipe (Owner or Moderator only)")
+async def delete_community_recipe(recipe_id: str, user_id: str):
+    recipes_collection = db["inventory_db"].community_recipes
+    users_collection = db["inventory_db"].users
+
+    recipe_to_delete = await recipes_collection.find_one({"_id": recipe_id})
+    requesting_user = await users_collection.find_one({"_id": user_id})
+
+    if not recipe_to_delete:
+        raise HTTPException(status_code=404, detail="Recipe not found.")
+    if not requesting_user:
+        raise HTTPException(status_code=404, detail="Requesting user not found.")
+
+    is_owner = recipe_to_delete.get("user_id") == user_id
+    is_moderator = requesting_user.get("role") == "moderator"
+
+    if not is_owner and not is_moderator:
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this recipe.")
+
+    author_id = recipe_to_delete.get("user_id")
+    if author_id:
+        points_to_remove = 5 + recipe_to_delete.get("upvotes", 0)
+        # This new logic ensures the score cannot go below 0
+        await users_collection.update_one(
+            {"_id": author_id},
+            [{"$set": {"points": {"$max": [0, {"$subtract": ["$points", points_to_remove]}]}}}]
+        )
+
+    await recipes_collection.delete_one({"_id": recipe_id})
+    return {"message": "Recipe has been successfully deleted."}
 # --- Helper for Anonymous Alias ---
 async def get_or_create_anonymous_alias(user_id: str):
     users_collection = db["inventory_db"].users
