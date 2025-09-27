@@ -290,11 +290,19 @@ async def add_plant_to_garden(user_id: str, plant_name: str = Body(...), file: U
     with open(image_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Create initial history entry
+    # --- CORRECTED INITIAL HISTORY ENTRY ---
+    # Create a valid PlantRecommendation object
+    initial_recommendation = PlantRecommendation(
+        title="Initial Monitoring",
+        steps=["Monitor for initial growth and watering needs."],
+        purchasable_items=[]
+    )
+
+    # Create the initial history entry using the valid object
     initial_entry = PlantHistoryEntry(
         image_path=str(image_path),
         diagnosis="Plant registered successfully.",
-        recommendations=["Monitor for initial growth and watering needs."]
+        recommendations=[initial_recommendation] # Pass it as a list of objects
     )
 
     # Create new plant document
@@ -306,7 +314,6 @@ async def add_plant_to_garden(user_id: str, plant_name: str = Body(...), file: U
 
     await db["inventory_db"].plants.insert_one(new_plant.model_dump(by_alias=True))
     return {"message": f"'{plant_name}' added to your garden.", "plant": new_plant.model_dump()}
-
 
 @app.get("/garden/{user_id}", summary="Get all plants in a user's garden")
 async def get_garden(user_id: str):
