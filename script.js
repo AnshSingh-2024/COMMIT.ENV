@@ -1,7 +1,7 @@
 // HomeHarvest AI - JavaScript Functionality
 
 document.addEventListener('DOMContentLoaded', async function () {
-    const API_BASE_URL = '';
+    const API_BASE_URL = 'https://homeharvest-backend.onrender.com';
 
     // --- Page Router ---
     handleAuthStatus();
