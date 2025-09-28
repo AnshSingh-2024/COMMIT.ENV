@@ -1,1 +1,8 @@
 .env
+bulk_upload_forum.py
+bulk_upload_recipes.py
+migrate_users.py
+Resetpoints.py
+set_moderator.py
+forum_posts.json
+recipes.json
