@@ -868,23 +868,27 @@ document.addEventListener('DOMContentLoaded', async function () {
     const closeModal = (modal) => modal && modal.classList.replace('flex', 'hidden');
 
     // --- MEAL PLANNER LOGIC ---
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
 
     const renderMealPlanner = () => {
         if (!mealPlannerContainer) return;
+
         let tableHtml = '<table class="w-full text-sm text-left table-fixed"><thead><tr class="border-b dark:border-gray-600"><th class="w-28 py-2 px-2"></th>';
         days.forEach(day => tableHtml += `<th class="py-2 px-2 text-center"><span class="hidden sm:inline">${day}</span><span class="sm:hidden">${day.substring(0,3)}</span></th>`);
         tableHtml += '</tr></thead><tbody>';
+
         mealTypes.forEach(mealType => {
             tableHtml += '<tr class="border-b dark:border-gray-600">';
             tableHtml += `<td class="font-bold p-2">${mealType}</td>`;
             days.forEach(day => {
                 const planEntry = mealPlan[`${day}-${mealType}`];
                 const mealKey = `${day}-${mealType}`;
+
+                // Added the 'break-words' class to the div below
                 tableHtml += `
-                    <td class="p-2 border-l dark:border-gray-600 align-top h-24 meal-slot" data-day="${day}" data-meal="${mealType}">
-                        ${planEntry ? `<div class="bg-green-100 dark:bg-green-900/50 p-2 rounded text-xs cursor-pointer truncate" draggable="true" data-meal-key="${mealKey}" title="${planEntry.recipe_name}">${planEntry.recipe_name}</div>` : ''}
+                    <td class="p-2 border-l dark:border-gray-600 align-top min-h-[6rem] meal-slot" data-day="${day}" data-meal="${mealType}">
+                        ${planEntry ? `<div class="bg-green-100 dark:bg-green-900/50 p-2  rounded text-xs cursor-pointer " draggable="true" data-meal-key="${mealKey}" title="${planEntry.recipe_name}">${planEntry.recipe_name}</div>` : ''}
                     </td>`;
             });
             tableHtml += '</tr>';
@@ -894,7 +898,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         addDropListeners();
         addDragListenersToPlannerItems();
     };
-
     const addDragListenersToPlannerItems = () => {
         document.querySelectorAll('[data-meal-key]').forEach(item => {
             item.setAttribute('draggable', true);
