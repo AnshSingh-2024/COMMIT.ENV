@@ -126,6 +126,9 @@ cd HomeHarvest-AI
 
     # Your API key from scraperapi.com (for the Amazon feature)
     SCRAPER_API_KEY="YOUR_SCRAPERAPI_KEY"
+    
+    # AMAZON_CART_BASE_URL="https://www.amazon.in/gp/aws/cart/add.html?AssociateTag=amazon"
+
     ```
 
 4.  **Run the Backend Server:**
