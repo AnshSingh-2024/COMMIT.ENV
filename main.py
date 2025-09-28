@@ -17,7 +17,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from models import Plant, PlantCreate, PlantHistoryEntry, PlantRecommendation, CommunityRecipe, ForumAnswer, ForumPost, \
-    CommunityRecipeCreate, GardenChatPayload
+    CommunityRecipeCreate, GardenChatPayload, MealPlan, MealPlanEntry
 from bson import ObjectId
 from fastapi.staticfiles import StaticFiles
 from models import (
@@ -201,10 +201,13 @@ async def update_inventory_item(user_id: str, item_update: InventoryItemUpdate):
 
 @app.get("/inventory/{user_id}", response_model=UserInventory, summary="Get a user's full inventory")
 async def get_user_inventory(user_id: str):
-    inventory = await db["inventory_db"].inventories.find_one({"user_id": user_id})
-    if inventory:
-        return inventory
+    inventory_data = await db["inventory_db"].inventories.find_one({"user_id": user_id})
+    if inventory_data:
+        # Manually convert the ObjectId to a string before validation
+        inventory_data["_id"] = str(inventory_data["_id"])
+        return UserInventory(**inventory_data)
     raise HTTPException(status_code=404, detail="Inventory not found")
+
 
 @app.post("/recipes/{user_id}", summary="Generate recipes based on inventory")
 async def get_recipes(user_id: str, payload: RecipePayload):
@@ -213,6 +216,8 @@ async def get_recipes(user_id: str, payload: RecipePayload):
         raise HTTPException(status_code=404, detail="Inventory is empty or not found.")
 
     inventory_json = json.dumps({"items": inventory["items"]})
+
+    # This prompt is now more specific to fix the formatting and matching issues
     prompt = f"""
         Based on the user's inventory: {inventory_json}, generate two or three recipes.
         Adhere to these preferences:
@@ -222,15 +227,25 @@ async def get_recipes(user_id: str, payload: RecipePayload):
         - Max Time: {payload.TimeAvailable} minutes
         - Servings: {payload.Serving}
         - Willing to shop for extras: {'Yes' if payload.Shopping else 'No'}
-        {"including at max of 2-3 unavailable ingredients not more" if payload.Shopping else ""}
-        Return a clean JSON object with a single key 'Recipes'. This key should contain an array of recipe objects.
-        Each recipe object must include: 'name' (string), 'description' (string), 'prep_time_minutes' (integer), 'cook_time_minutes' (integer), 'ingredients' (array of strings), and 'instructions' (array of strings).
-        Do not include any text outside the JSON object.
-    """
-    response = model.generate_content(prompt, stream=False)
-    json_string = response.text.strip().replace("```json", "").replace("```", "")
-    return json.loads(json_string)
 
+        Return a clean JSON object with a single key 'Recipes'. This key should contain an array of recipe objects.
+        Each recipe object must include: 'name', 'description', 'prep_time_minutes', 'cook_time_minutes', 'ingredients', 'instructions', and 'nutritional_info'.
+        You are to assume that some basic things like water are already available.
+
+        IMPORTANT FORMATTING RULES for the 'ingredients' array:
+        1. Each item in the array must be a simple, descriptive string of the ingredient and its quantity (e.g., "1 cup Basmati Rice" or "2 large onions, chopped").
+        2. Use the most generic names possible for ingredients (e.g., use "rice" instead of "Basmati Rice", "oil" instead of "extra virgin olive oil").
+        3. DO NOT add any extra labels, parentheses, or annotations like '(from inventory)' or '(shopping)' to the ingredient strings.
+
+        Each 'nutritional_info' object must have keys 'calories', 'protein', 'carbs', and 'fats', all as strings.
+        Do not include any text outside the main JSON object.
+    """
+    try:
+        response = model.generate_content(prompt, stream=False)
+        json_string = response.text.strip().replace("```json", "").replace("```", "")
+        return json.loads(json_string)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI processing failed: {e}")
 @app.post("/shopping",summary = "Returns a link with all the items required")
 async def get_shopping(items : dict):
     #Items structure={"item_name":Quantity}
@@ -249,6 +264,53 @@ async def get_shopping(items : dict):
         ASINsFound.append(asin)
     cart_url=AMAZON_CART_BASE_URL+''.join(ASINsFound)
     return {"cart_url": cart_url}
+
+
+@app.get("/meal-plan/{user_id}", response_model=MealPlan, summary="Get a user's meal plan")
+async def get_meal_plan(user_id: str):
+    meal_plan_data = await db["inventory_db"].meal_plans.find_one({"user_id": user_id})
+    if meal_plan_data:
+        # Manually convert the ObjectId to a string before validation
+        meal_plan_data["_id"] = str(meal_plan_data["_id"])
+        return MealPlan(**meal_plan_data)
+    # Return an empty plan if none exists
+    return MealPlan(user_id=user_id, entries=[])
+
+@app.post("/meal-plan/{user_id}", summary="Save a user's meal plan")
+async def save_meal_plan(user_id: str, plan: MealPlan):
+    await db["inventory_db"].meal_plans.update_one(
+        {"user_id": user_id},
+        {"$set": plan.model_dump()},
+        upsert=True
+    )
+    return {"message": "Meal plan saved successfully."}
+
+
+@app.get("/shopping-list/{user_id}", summary="Generate a smart shopping list")
+async def get_shopping_list(user_id: str):
+    # Fetch meal plan and inventory
+    meal_plan_doc = await db["inventory_db"].meal_plans.find_one({"user_id": user_id})
+    inventory_doc = await db["inventory_db"].inventories.find_one({"user_id": user_id})
+
+    if not meal_plan_doc or not meal_plan_doc.get("entries"):
+        return {"shopping_list": []}
+
+    # Consolidate all ingredients from the meal plan
+    required_ingredients = [ing for entry in meal_plan_doc["entries"] for ing in entry["recipe_ingredients"]]
+
+    # Get current inventory items (lowercase for case-insensitive comparison)
+    inventory_items = {item['item_name'].lower() for item in inventory_doc.get("items", [])}
+
+    # Use AI to clean the descriptive list from the meal plan
+    cleaned_items_response = await clean_ingredients(IngredientsList(ingredients=required_ingredients))
+
+    # Filter out items the user already has
+    shopping_list = {
+        item: qty for item, qty in cleaned_items_response.items()
+        if item.lower() not in inventory_items
+    }
+
+    return {"shopping_list": shopping_list}
 
 @app.post("/clean-ingredients", summary="Cleans a list of descriptive ingredients into a simple format")
 async def clean_ingredients(payload: IngredientsList):
@@ -444,7 +506,12 @@ async def get_all_community_recipes(page: int = 1, limit: int = 9, search: Optio
 
     query = {"hidden": {"$ne": True}}
     if search:
-        query["$text"] = {"$search": search}
+        # This new logic uses a case-insensitive regex search for substrings
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$or"] = [
+            {"recipe_name": search_regex},
+            {"author_name": search_regex}
+        ]
 
     skip = (page - 1) * limit
     total_items = await recipes_collection.count_documents(query)
@@ -462,7 +529,13 @@ async def get_all_forum_posts(page: int = 1, limit: int = 10, search: Optional[s
 
     query = {"hidden": {"$ne": True}}
     if search:
-        query["$text"] = {"$search": search}
+        # This new logic uses a case-insensitive regex search for substrings
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$or"] = [
+            {"title": search_regex},
+            {"content": search_regex},
+            {"author_alias": search_regex}
+        ]
 
     skip = (page - 1) * limit
     total_items = await posts_collection.count_documents(query)
@@ -477,13 +550,11 @@ async def get_all_forum_posts(page: int = 1, limit: int = 10, search: Optional[s
 
     return {"items": posts, "total_pages": total_pages, "current_page": page}
 
-
 @community_router.get("/leaderboard", summary="Get the user leaderboard")
 async def get_leaderboard():
     users_cursor = db["inventory_db"].users.find().sort("points", -1).limit(10)
     leaderboard = await users_cursor.to_list(length=10)
     return [{"name": user["name"], "points": user["points"]} for user in leaderboard]
-
 
 @community_router.post("/recipes/{user_id}", summary="Post a new recipe")
 async def create_community_recipe(user_id: str, recipe_data: CommunityRecipeCreate):
@@ -494,7 +565,6 @@ async def create_community_recipe(user_id: str, recipe_data: CommunityRecipeCrea
 
     await db["inventory_db"].community_recipes.insert_one(new_recipe.model_dump(by_alias=True))
     return {"message": "Recipe shared successfully! You earned 5 points."}
-
 
 @community_router.post("/recipes/{recipe_id}/toggle_upvote/{user_id}", summary="Toggle upvote on a recipe")
 async def toggle_upvote_recipe(recipe_id: str, user_id: str):
@@ -539,7 +609,6 @@ async def create_forum_post(user_id: str, post_data: ForumPostCreate):
     await db["inventory_db"].forum_posts.insert_one(new_post.model_dump(by_alias=True))
     return {"message": "Post created successfully."}
 
-
 @community_router.post("/forum/{post_id}/answer/{user_id}", summary="Add an answer to a post")
 async def add_forum_answer(post_id: str, user_id: str, answer_data: ForumAnswerCreate):
     author_alias = await get_or_create_anonymous_alias(user_id)
@@ -556,7 +625,6 @@ async def add_forum_answer(post_id: str, user_id: str, answer_data: ForumAnswerC
         raise HTTPException(status_code=404, detail="Post not found.")
     return {"message": "Answer posted successfully."}
 
-
 @community_router.post("/forum/{post_id}/report", summary="Report a post")
 async def report_post(post_id: str):
     result = await db["inventory_db"].forum_posts.update_one(
@@ -566,7 +634,6 @@ async def report_post(post_id: str):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Post not found.")
     return {"message": "Post reported. A moderator will review it shortly."}
-
 
 @community_router.put("/forum/{post_id}/hide/{user_id}", summary="Hide a post (Moderator only)")
 async def hide_post(post_id: str, user_id: str):
@@ -581,10 +648,6 @@ async def hide_post(post_id: str, user_id: str):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Post not found.")
     return {"message": "Post has been hidden."}
-
-
-# In main.py, add this new endpoint inside the community_router section.
-# Make sure to import GardenChatPayload from models.
 
 @community_router.post("/garden/chat/{plant_id}", summary="Chat with the AI about a specific plant, with streaming")
 async def garden_chat(plant_id: str, payload: GardenChatPayload):
@@ -665,6 +728,4 @@ async def get_or_create_anonymous_alias(user_id: str):
     await users_collection.update_one({"_id": user_id}, {"$set": {"anonymous_alias": new_alias}})
     return new_alias
 
-
-# 3. Add this line at the very end of your main.py file to activate the router
 app.include_router(community_router)

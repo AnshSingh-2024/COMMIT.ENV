@@ -1,6 +1,6 @@
 // HomeHarvest AI - JavaScript Functionality
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function () {
     const API_BASE_URL = 'http://127.0.0.1:8000';
 
     // --- Page Router ---
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
             darkIcon.classList.remove('hidden');
         }
 
-        themeToggleBtn.addEventListener('click', function() {
+        themeToggleBtn.addEventListener('click', function () {
             darkIcon.classList.toggle('hidden');
             lightIcon.classList.toggle('hidden');
 
@@ -104,13 +104,19 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('user-dropdown').classList.toggle('hidden');
         });
         document.getElementById('logout-button').addEventListener('click', (e) => {
-           e.preventDefault();
-           logout();
+            e.preventDefault();
+            logout();
         });
     }
 
-    function setSession(userData) { localStorage.setItem('homeHarvestUser', JSON.stringify(userData)); }
-    function getSession() { return JSON.parse(localStorage.getItem('homeHarvestUser')); }
+    function setSession(userData) {
+        localStorage.setItem('homeHarvestUser', JSON.stringify(userData));
+    }
+
+    function getSession() {
+        return JSON.parse(localStorage.getItem('homeHarvestUser'));
+    }
+
     function logout() {
         localStorage.clear();
         sessionStorage.clear();
@@ -126,6 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loaderModal.classList.remove('hidden');
         }
     }
+
     function hideLoader() {
         const loaderModal = document.getElementById('loader-modal');
         if (loaderModal) {
@@ -170,16 +177,16 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`${API_BASE_URL}/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password }),
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, password}),
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
                 setSession(data);
                 window.location.href = 'kitchen.html';
             } catch (error) {
-                 formMessage.textContent = error.message;
-                 formMessage.classList.add('text-red-500');
+                formMessage.textContent = error.message;
+                formMessage.classList.add('text-red-500');
             }
         });
 
@@ -194,10 +201,10 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`${API_BASE_URL}/signup`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password, dietary_preference }),
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, email, password, dietary_preference}),
                 });
-                 const data = await response.json();
+                const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
                 formMessage.textContent = 'Account created! Please log in.';
                 formMessage.classList.remove('text-red-500');
@@ -209,6 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
     async function initializeCommunityPage() {
         const user = getSession();
         if (!user) {
@@ -297,7 +305,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 </div>
-            `}).join('');
+            `
+            }).join('');
         };
         const fetchAndDisplayRecipes = async (page = 1, search = '') => {
             if (!recipesContainer) return;
@@ -388,28 +397,28 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         const loadTabData = (tab) => {
-        if (tab === 'recipes') fetchAndDisplayRecipes(recipeCurrentPage, recipeSearchTerm);
-        else if (tab === 'forum') fetchAndDisplayForum(forumCurrentPage, forumSearchTerm);
-        else if (tab === 'leaderboard') fetchAndDisplayLeaderboard();
-    };
+            if (tab === 'recipes') fetchAndDisplayRecipes(recipeCurrentPage, recipeSearchTerm);
+            else if (tab === 'forum') fetchAndDisplayForum(forumCurrentPage, forumSearchTerm);
+            else if (tab === 'leaderboard') fetchAndDisplayLeaderboard();
+        };
 
-    recipeSearchInput?.addEventListener('input', (e) => {
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => {
-            recipeSearchTerm = e.target.value;
-            recipeCurrentPage = 1;
-            fetchAndDisplayRecipes(recipeCurrentPage, recipeSearchTerm);
-        }, 500); // 500ms debounce
-    });
+        recipeSearchInput?.addEventListener('input', (e) => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                recipeSearchTerm = e.target.value;
+                recipeCurrentPage = 1;
+                fetchAndDisplayRecipes(recipeCurrentPage, recipeSearchTerm);
+            }, 500); // 500ms debounce
+        });
 
-    forumSearchInput?.addEventListener('input', (e) => {
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(() => {
-            forumSearchTerm = e.target.value;
-            forumCurrentPage = 1;
-            fetchAndDisplayForum(forumCurrentPage, forumSearchTerm);
-        }, 500); // 500ms debounce
-    });
+        forumSearchInput?.addEventListener('input', (e) => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                forumSearchTerm = e.target.value;
+                forumCurrentPage = 1;
+                fetchAndDisplayForum(forumCurrentPage, forumSearchTerm);
+            }, 500); // 500ms debounce
+        });
 
 
         // --- EVENT LISTENERS ---
@@ -428,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         document.getElementById('ask-question-btn')?.addEventListener('click', () => {
-            if(askQuestionForm) askQuestionForm.reset();
+            if (askQuestionForm) askQuestionForm.reset();
             openModal(modals.askQuestion);
         });
 
@@ -453,11 +462,25 @@ document.addEventListener('DOMContentLoaded', function() {
         shareRecipeForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
             showLoader('Posting your recipe...');
-            const ingredients = Array.from(document.querySelectorAll('#ingredients-list > div')).map(div => ({ name: div.querySelector('.ingredient-name').value, quantity: div.querySelector('.ingredient-qty').value })).filter(i => i.name && i.quantity);
+            const ingredients = Array.from(document.querySelectorAll('#ingredients-list > div')).map(div => ({
+                name: div.querySelector('.ingredient-name').value,
+                quantity: div.querySelector('.ingredient-qty').value
+            })).filter(i => i.name && i.quantity);
             const instructions = Array.from(document.querySelectorAll('#instructions-list > div')).map(div => div.querySelector('.instruction-step').value).filter(Boolean);
-            const payload = { author_name: user.name, recipe_name: document.getElementById('recipe-name').value, description: document.getElementById('recipe-description').value, diet_type: document.getElementById('recipe-diet-type').value, ingredients, instructions };
+            const payload = {
+                author_name: user.name,
+                recipe_name: document.getElementById('recipe-name').value,
+                description: document.getElementById('recipe-description').value,
+                diet_type: document.getElementById('recipe-diet-type').value,
+                ingredients,
+                instructions
+            };
             try {
-                const response = await fetch(`${API_BASE_URL}/community/recipes/${user.user_id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const response = await fetch(`${API_BASE_URL}/community/recipes/${user.user_id}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
                 showNotification(data.message, 'success');
@@ -474,9 +497,16 @@ document.addEventListener('DOMContentLoaded', function() {
         askQuestionForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
             showLoader('Posting question...');
-            const payload = { title: document.getElementById('question-title').value, content: document.getElementById('question-content').value };
+            const payload = {
+                title: document.getElementById('question-title').value,
+                content: document.getElementById('question-content').value
+            };
             try {
-                const response = await fetch(`${API_BASE_URL}/community/forum/${user.user_id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const response = await fetch(`${API_BASE_URL}/community/forum/${user.user_id}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
                 showNotification(data.message, 'success');
@@ -495,9 +525,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const answerContent = document.getElementById('answer-content');
             if (!postId || !answerContent.value) return;
             showLoader('Submitting answer...');
-            const payload = { content: answerContent.value };
+            const payload = {content: answerContent.value};
             try {
-                const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/answer/${user.user_id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/answer/${user.user_id}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
                 showNotification(data.message, 'success');
@@ -522,26 +556,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const hideAnswerBtn = e.target.closest('.hide-answer-btn');
             const removePlantBtn = e.target.closest('.remove-plant-btn');
             if (removePlantBtn) {
-            const plantId = removePlantBtn.dataset.plantId;
-            if (confirm('Are you sure you want to remove this plant and all its history? This action cannot be undone.')) {
-                showLoader('Removing plant...');
-                try {
-                    const response = await fetch(`${API_BASE_URL}/garden/plant/${plantId}/${user.user_id}`, {
-                        method: 'DELETE'
-                    });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.detail);
+                const plantId = removePlantBtn.dataset.plantId;
+                if (confirm('Are you sure you want to remove this plant and all its history? This action cannot be undone.')) {
+                    showLoader('Removing plant...');
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/garden/plant/${plantId}/${user.user_id}`, {
+                            method: 'DELETE'
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.detail);
 
-                    showNotification(data.message, 'success');
-                    // Give immediate visual feedback by removing the card
-                    e.target.closest('[data-plant-id-wrapper]').remove();
-                } catch (error) {
-                    showNotification(error.message, 'error');
-                } finally {
-                    hideLoader();
+                        showNotification(data.message, 'success');
+                        // Give immediate visual feedback by removing the card
+                        e.target.closest('[data-plant-id-wrapper]').remove();
+                    } catch (error) {
+                        showNotification(error.message, 'error');
+                    } finally {
+                        hideLoader();
+                    }
                 }
             }
-        }
 
             if (upvoteBtn) {
                 const recipeId = upvoteBtn.dataset.recipeId;
@@ -560,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 try {
                     // Send the request to the server in the background
-                    const response = await fetch(`${API_BASE_URL}/community/recipes/${recipeId}/toggle_upvote/${user.user_id}`, { method: 'POST' });
+                    const response = await fetch(`${API_BASE_URL}/community/recipes/${recipeId}/toggle_upvote/${user.user_id}`, {method: 'POST'});
                     if (!response.ok) {
                         throw new Error('Upvote failed on server');
                     }
@@ -594,8 +628,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (recipeFooter) {
                     recipeFooter.innerHTML = ''; // Clear previous button
-                    const shoppingPayload = { "additionalProp1": {} };
-                    recipe.ingredients.forEach(i => { shoppingPayload.additionalProp1[i.name] = 1; });
+                    const shoppingPayload = {"additionalProp1": {}};
+                    recipe.ingredients.forEach(i => {
+                        shoppingPayload.additionalProp1[i.name] = 1;
+                    });
 
                     const shopBtn = document.createElement('button');
                     shopBtn.className = 'w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2';
@@ -605,12 +641,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     shopBtn.addEventListener('click', async () => {
                         showLoader('Finding items on Amazon...');
                         try {
-                            const response = await fetch(`${API_BASE_URL}/shopping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(shoppingPayload) });
+                            const response = await fetch(`${API_BASE_URL}/shopping`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify(shoppingPayload)
+                            });
                             const data = await response.json();
                             if (!response.ok) throw new Error(data.detail || 'Failed to get shopping link.');
                             window.open(data.cart_url, '_blank');
-                        } catch (error) { showNotification(error.message, 'error'); }
-                        finally { hideLoader(); }
+                        } catch (error) {
+                            showNotification(error.message, 'error');
+                        } finally {
+                            hideLoader();
+                        }
                     });
                 }
                 openModal(modals.viewRecipe);
@@ -656,30 +699,34 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>`).join('')
                     : '<p class="text-sm text-gray-500">No answers yet.</p>';
-                if(addAnswerForm) addAnswerForm.dataset.postId = post._id;
+                if (addAnswerForm) addAnswerForm.dataset.postId = post._id;
                 openModal(modals.viewPost);
             }
             if (reportBtn) {
                 const postId = reportBtn.dataset.postId;
                 if (confirm('Are you sure you want to report this post for review?')) {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/report`, { method: 'POST' });
+                        const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/report`, {method: 'POST'});
                         const data = await response.json();
                         if (!response.ok) throw new Error(data.detail);
                         showNotification(data.message, 'success');
-                    } catch (error) { showNotification(error.message, 'error'); }
+                    } catch (error) {
+                        showNotification(error.message, 'error');
+                    }
                 }
             }
             if (hideBtn) {
                 const postId = hideBtn.dataset.postId;
                 if (confirm('MODERATOR: Are you sure you want to hide this post from public view?')) {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/hide/${user.user_id}`, { method: 'PUT' });
+                        const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/hide/${user.user_id}`, {method: 'PUT'});
                         const data = await response.json();
                         if (!response.ok) throw new Error(data.detail);
                         showNotification(data.message, 'success');
                         e.target.closest('[data-post-id-wrapper]').remove();
-                    } catch (error) { showNotification(error.message, 'error'); }
+                    } catch (error) {
+                        showNotification(error.message, 'error');
+                    }
                 }
             }
             if (reportAnswerBtn) {
@@ -687,24 +734,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 const answerId = reportAnswerBtn.dataset.answerId;
                 if (confirm('Are you sure you want to report this answer for review?')) {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/answer/${answerId}/report`, { method: 'POST' });
+                        const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/answer/${answerId}/report`, {method: 'POST'});
                         const data = await response.json();
                         if (!response.ok) throw new Error(data.detail);
                         showNotification(data.message, 'success');
-                    } catch (error) { showNotification(error.message, 'error'); }
+                    } catch (error) {
+                        showNotification(error.message, 'error');
+                    }
                 }
             }
             if (hideAnswerBtn) {
                 const postId = hideAnswerBtn.dataset.postId;
-                 if (confirm('MODERATOR: Are you sure you want to hide this answer?')) {
+                if (confirm('MODERATOR: Are you sure you want to hide this answer?')) {
                     const answerId = hideAnswerBtn.dataset.answerId;
                     try {
-                        const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/answer/${answerId}/hide/${user.user_id}`, { method: 'PUT' });
+                        const response = await fetch(`${API_BASE_URL}/community/forum/${postId}/answer/${answerId}/hide/${user.user_id}`, {method: 'PUT'});
                         const data = await response.json();
                         if (!response.ok) throw new Error(data.detail);
                         showNotification(data.message, 'success');
                         e.target.closest('[data-answer-id-wrapper]').remove();
-                    } catch (error) { showNotification(error.message, 'error'); }
+                    } catch (error) {
+                        showNotification(error.message, 'error');
+                    }
                 }
             }
         });
@@ -712,6 +763,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- INITIAL PAGE LOAD ---
         loadTabData('recipes');
     }
+
     async function initializeAccountPage() {
         const user = getSession();
         if (!user) return;
@@ -741,8 +793,8 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`${API_BASE_URL}/user/${user.user_id}/update`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({current_password: currentPassword, new_password: newPassword}),
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
@@ -760,11 +812,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const newDiet = dietSelect.value;
             dietMessage.textContent = 'Saving...';
 
-             try {
+            try {
                 const response = await fetch(`${API_BASE_URL}/user/${user.user_id}/update`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ dietary_preference: newDiet }),
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dietary_preference: newDiet}),
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
@@ -781,6 +833,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const user = getSession();
         if (!user) return;
 
+        let currentRecipes = [];
+        let currentInventory = [];
+        let mealPlan = {};
+        let currentPantryFile = null;
+
+        // --- DOM ELEMENT REFERENCES ---
         const difficultyGroup = document.getElementById('difficulty-group');
         const timeSelect = document.getElementById('time-available');
         const servingsInput = document.getElementById('servings');
@@ -798,12 +856,248 @@ document.addEventListener('DOMContentLoaded', function() {
         const pantryImage = document.getElementById('pantry-image');
         const pantryConfirmBtn = document.getElementById('pantry-confirm-btn');
         const pantryRemoveBtn = document.getElementById('pantry-remove-btn');
-        let currentPantryFile = null;
+        const mealPlannerContainer = document.getElementById('meal-planner-container');
+        const savePlanBtn = document.getElementById('save-plan-btn');
+        const shoppingListBtn = document.getElementById('shopping-list-btn');
+        const recipeModal = document.getElementById('recipe-modal');
+        const shoppingListModal = document.getElementById('shopping-list-modal');
 
-        initializeRecipeModal();
-        let currentRecipes = [];
-        let currentInventory = [];
+        // --- UNIFIED MODAL & HELPER FUNCTIONS ---
+        const openModal = (modal) => modal && modal.classList.replace('hidden', 'flex');
+        const closeModal = (modal) => modal && modal.classList.replace('flex', 'hidden');
 
+        // --- MEAL PLANNER LOGIC ---
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
+
+        const renderMealPlanner = () => {
+            if (!mealPlannerContainer) return;
+            let tableHtml = '<table class="w-full text-sm text-left table-fixed"><thead><tr class="border-b dark:border-gray-600"><th class="w-24 py-2 px-1"></th>';
+            days.forEach(day => tableHtml += `<th class="py-2 px-1 text-center"><span class="hidden sm:inline">${day}</span><span class="sm:hidden">${day.substring(0,3)}</span></th>`);
+            tableHtml += '</tr></thead><tbody>';
+            mealTypes.forEach(mealType => {
+                tableHtml += '<tr class="border-b dark:border-gray-600">';
+                tableHtml += `<td class="font-bold p-2">${mealType}</td>`;
+                days.forEach(day => {
+                    const planEntry = mealPlan[`${day}-${mealType}`];
+                    tableHtml += `
+                        <td class="p-1 border-l dark:border-gray-600 align-top h-24 meal-slot" data-day="${day}" data-meal="${mealType}">
+                            ${planEntry ? `<div class="bg-green-100 dark:bg-green-900/50 p-1 rounded text-xs cursor-pointer hover:bg-red-200 dark:hover:bg-red-800" title="Click to remove">${planEntry.recipe_name}</div>` : ''}
+                        </td>`;
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+            mealPlannerContainer.innerHTML = tableHtml;
+            addDropListeners();
+        };
+
+        const addDragListeners = () => {
+            document.querySelectorAll('#featured-recipes-container .feature-card').forEach(card => {
+                card.setAttribute('draggable', true);
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', e.target.dataset.recipeIndex);
+                    setTimeout(() => e.target.classList.add('opacity-50'), 0);
+                });
+                card.addEventListener('dragend', (e) => e.target.classList.remove('opacity-50'));
+            });
+        };
+
+        const addDropListeners = () => {
+            document.querySelectorAll('.meal-slot').forEach(slot => {
+                slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('bg-green-50', 'dark:bg-gray-700'); });
+                slot.addEventListener('dragleave', (e) => slot.classList.remove('bg-green-50', 'dark:bg-gray-700'));
+                slot.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    slot.classList.remove('bg-green-50', 'dark:bg-gray-700');
+                    const recipeIndex = e.dataTransfer.getData('text/plain');
+                    const recipe = currentRecipes[parseInt(recipeIndex, 10)];
+                    if (!recipe) return;
+                    const day = slot.dataset.day;
+                    const mealType = slot.dataset.meal;
+                    mealPlan[`${day}-${mealType}`] = { day_of_week: day, meal_type: mealType, recipe_name: recipe.name, recipe_ingredients: recipe.ingredients };
+                    renderMealPlanner();
+                });
+            });
+        };
+
+        const savePlan = async (showNotificationAfter = false) => {
+            try {
+                const payload = { user_id: user.user_id, entries: Object.values(mealPlan) };
+                const response = await fetch(`${API_BASE_URL}/meal-plan/${user.user_id}`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+                if (showNotificationAfter) showNotification(data.message, 'success');
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        };
+
+        const fetchAndDisplayMealPlan = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/meal-plan/${user.user_id}`);
+                const data = await response.json();
+                mealPlan = {};
+                if (data && data.entries) {
+                    data.entries.forEach(entry => {
+                        mealPlan[`${entry.day_of_week}-${entry.meal_type}`] = entry;
+                    });
+                }
+                renderMealPlanner();
+            } catch (error) {
+                showNotification('Could not load your meal plan.', 'error');
+                renderMealPlanner();
+            }
+        };
+
+        const openRecipeModal = (recipe) => {
+            if (!recipe) return;
+            document.getElementById('recipe-modal-title').textContent = recipe.name;
+            document.getElementById('recipe-modal-description').textContent = recipe.description;
+            document.getElementById('recipe-modal-prep-time').textContent = `Prep: ${recipe.prep_time_minutes} min`;
+            document.getElementById('recipe-modal-cook-time').textContent = `Cook: ${recipe.cook_time_minutes} min`;
+            document.getElementById('recipe-modal-instructions').innerHTML = recipe.instructions.map(step => `<li>${step}</li>`).join('');
+
+            const nutritionContainer = document.getElementById('recipe-modal-nutrition');
+            if (nutritionContainer && recipe.nutritional_info) {
+                nutritionContainer.innerHTML = `
+                    <div><p class="font-bold">${recipe.nutritional_info.calories || 'N/A'}</p><p class="text-xs text-gray-500">Calories</p></div>
+                    <div><p class="font-bold">${recipe.nutritional_info.protein || 'N/A'}</p><p class="text-xs text-gray-500">Protein</p></div>
+                    <div><p class="font-bold">${recipe.nutritional_info.carbs || 'N/A'}</p><p class="text-xs text-gray-500">Carbs</p></div>
+                    <div><p class="font-bold">${recipe.nutritional_info.fats || 'N/A'}</p><p class="text-xs text-gray-500">Fats</p></div>
+                `;
+            } else if (nutritionContainer) {
+                 nutritionContainer.innerHTML = '<p class="col-span-full text-sm text-gray-500">Nutritional information not available.</p>';
+            }
+
+            const inventoryItemNamesLower = currentInventory.map(item => item.item_name.toLowerCase());
+            const missingIngredientStrings = [];
+            document.getElementById('recipe-modal-ingredients').innerHTML = recipe.ingredients.map(descriptiveIngredient => {
+                const descriptiveIngredientLower = descriptiveIngredient.toLowerCase();
+                const foundInInventory = inventoryItemNamesLower.some(inventoryItem => descriptiveIngredientLower.includes(inventoryItem));
+                if (foundInInventory) return `<li class="text-green-700 dark:text-green-400">${descriptiveIngredient} (In Stock)</li>`;
+                else {
+                    missingIngredientStrings.push(descriptiveIngredient);
+                    return `<li class="text-red-700 dark:text-red-400">${descriptiveIngredient} (Missing)</li>`;
+                }
+            }).join('');
+
+            const recipeFooter = document.getElementById('recipe-modal-footer');
+            recipeFooter.innerHTML = '';
+            if (missingIngredientStrings.length > 0) {
+                const shopBtn = document.createElement('button');
+                shopBtn.id = 'shop-missing-btn';
+                shopBtn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2';
+                shopBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg><span>Add Missing to Cart</span>`;
+                recipeFooter.appendChild(shopBtn);
+                shopBtn.addEventListener('click', async () => {
+                    shopBtn.disabled = true;
+                    shopBtn.innerHTML = '<span>Processing...</span>';
+                    try {
+                        const cleanResponse = await fetch(`${API_BASE_URL}/clean-ingredients`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ingredients: missingIngredientStrings }) });
+                        const cleanedItems = await cleanResponse.json();
+                        if (!cleanResponse.ok) throw new Error('Failed to parse ingredients for shopping.');
+                        shopBtn.innerHTML = '<span>Generating Link...</span>';
+                        const shoppingResponse = await fetch(`${API_BASE_URL}/shopping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ "additionalProp1": cleanedItems }) });
+                        const shoppingData = await shoppingResponse.json();
+                        if (!shoppingResponse.ok) {
+                            let detailMessage = shoppingData.detail;
+                            if (typeof detailMessage === 'object' && detailMessage !== null && detailMessage.error) { throw new Error(detailMessage.error); }
+                            throw new Error(detailMessage || 'Failed to get shopping link');
+                        }
+                        window.open(shoppingData.cart_url, '_blank');
+                    } catch(error) {
+                        showNotification(error.message, 'error');
+                    } finally {
+                        shopBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg><span>Add Missing to Cart</span>`;
+                        shopBtn.disabled = false;
+                    }
+                });
+            }
+            openModal(recipeModal);
+        };
+
+        const displayRecipes = (recipes) => {
+            if (!recipes || recipes.length === 0) {
+                recipesContainer.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 dark:bg-gray-800 rounded-lg"><p class="text-gray-600 dark:text-gray-400">Set your preferences and click "Generate Recipes" to start!</p></div>`;
+                return;
+            }
+            recipesContainer.innerHTML = recipes.map((recipe, index) => `
+            <div class="feature-card cursor-grab hover:border-green-500 dark:hover:border-green-400" draggable="true" data-recipe-index="${index}">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white pointer-events-none">${recipe.name}</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 pointer-events-none">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
+            </div>`).join('');
+            addDragListeners();
+        };
+
+        const fetchAndDisplayInventory = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`);
+                const data = await response.json();
+                if (!response.ok) {
+                    currentInventory = [];
+                    inventoryContainer.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your inventory is empty.</p>`;
+                    return;
+                }
+                currentInventory = data.items || [];
+                if (currentInventory.length === 0) {
+                    inventoryContainer.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your inventory is empty.</p>`;
+                } else {
+                    inventoryContainer.innerHTML = currentInventory.map(item => `
+                    <div class="flex justify-between items-center bg-green-50 dark:bg-green-900/50 p-2 rounded-lg animate-fade-in">
+                        <span class="text-green-800 dark:text-green-200 font-medium flex-1 mr-2">${item.item_name}</span>
+                        <div class="flex items-center">
+                            <button data-item-name="${item.item_name}" data-change="-1" class="bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">-</button>
+                            <span class="w-10 text-center font-semibold">${item.quantity}</span>
+                            <button data-item-name="${item.item_name}" data-change="1" class="bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">+</button>
+                        </div>
+                    </div>`).join('');
+                }
+            } catch (error) {
+                currentInventory = [];
+                inventoryContainer.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`;
+            }
+        };
+
+        function savePreferences() {
+            const prefs = {
+                difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value || 'Easy',
+                time: timeSelect.value, servings: servingsInput.value,
+                purchase: purchaseExtras.checked, cuisine: cuisineInput.value
+            };
+            localStorage.setItem('kitchenPreferences', JSON.stringify(prefs));
+        }
+
+        function loadPreferences() {
+            const prefs = JSON.parse(localStorage.getItem('kitchenPreferences'));
+            if (!prefs) return;
+            difficultyGroup.querySelectorAll('button').forEach(b => {
+                b.classList.remove('bg-green-600', 'text-white');
+                if (b.dataset.value === prefs.difficulty) b.classList.add('bg-green-600', 'text-white');
+            });
+            timeSelect.value = prefs.time;
+            servingsInput.value = prefs.servings;
+            cuisineInput.value = prefs.cuisine;
+            purchaseExtras.checked = prefs.purchase;
+            updatePurchaseToggleUI();
+        }
+
+        function updatePurchaseToggleUI() {
+            const knob = purchaseExtras.parentElement.querySelector('span > span');
+            const track = knob.parentElement;
+            knob.style.transform = purchaseExtras.checked ? 'translateX(16px)' : 'translateX(0px)';
+            if (purchaseExtras.checked) {
+                track.classList.remove('bg-gray-200', 'dark:bg-gray-600');
+                track.classList.add('bg-green-500');
+            } else {
+                track.classList.add('bg-gray-200', 'dark:bg-gray-600');
+                track.classList.remove('bg-green-500');
+            }
+        }
+
+        // --- EVENT LISTENERS ---
         pantryUploadArea.addEventListener('click', () => pantryUploadInput.click());
         pantryUploadInput.addEventListener('change', e => {
             const file = e.target.files[0];
@@ -831,8 +1125,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!response.ok) throw new Error(data.detail);
                 showNotification(data.message || 'Inventory updated!', 'success');
                 await fetchAndDisplayInventory();
-            } catch (error) { showNotification(error.message, 'error'); }
-            finally {
+            } catch (error) {
+                showNotification(error.message, 'error');
+            } finally {
                 hideLoader();
                 pantryRemoveBtn.click();
             }
@@ -845,9 +1140,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const change = parseInt(button.dataset.change, 10);
             try {
                 const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}/update-item`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ item_name: itemName, change: change })
+                    method: 'PUT', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({item_name: itemName, change: change})
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
@@ -857,39 +1151,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        function savePreferences() {
-            const prefs = {
-                difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value || 'Easy',
-                time: timeSelect.value, servings: servingsInput.value,
-                purchase: purchaseExtras.checked, cuisine: cuisineInput.value
-            };
-            localStorage.setItem('kitchenPreferences', JSON.stringify(prefs));
-        }
-        function loadPreferences() {
-            const prefs = JSON.parse(localStorage.getItem('kitchenPreferences'));
-            if (!prefs) return;
-            difficultyGroup.querySelectorAll('button').forEach(b => {
-                b.classList.remove('bg-green-600', 'text-white');
-                if (b.dataset.value === prefs.difficulty) b.classList.add('bg-green-600', 'text-white');
-            });
-            timeSelect.value = prefs.time;
-            servingsInput.value = prefs.servings;
-            cuisineInput.value = prefs.cuisine;
-            purchaseExtras.checked = prefs.purchase;
-            updatePurchaseToggleUI();
-        }
-        function updatePurchaseToggleUI() {
-            const knob = purchaseExtras.parentElement.querySelector('span > span');
-            const track = knob.parentElement;
-            knob.style.transform = purchaseExtras.checked ? 'translateX(16px)' : 'translateX(0px)';
-            if (purchaseExtras.checked) {
-                track.classList.remove('bg-gray-200', 'dark:bg-gray-600');
-                track.classList.add('bg-green-500');
-            } else {
-                track.classList.add('bg-gray-200', 'dark:bg-gray-600');
-                track.classList.remove('bg-green-500');
+        recipesContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-recipe-index]');
+            if (card) {
+                const recipeIndex = parseInt(card.dataset.recipeIndex, 10);
+                openRecipeModal(currentRecipes[recipeIndex]);
             }
-        }
+        });
+
+        document.getElementById('recipe-modal-close')?.addEventListener('click', () => closeModal(recipeModal));
+        recipeModal?.addEventListener('click', (e) => { if (e.target === recipeModal) closeModal(recipeModal); });
+        document.getElementById('shopping-list-close-btn')?.addEventListener('click', () => closeModal(shoppingListModal));
+        shoppingListModal?.addEventListener('click', (e) => { if(e.target === shoppingListModal) closeModal(shoppingListModal); });
+
+        savePlanBtn.addEventListener('click', async () => {
+            showLoader('Saving your plan...');
+            await savePlan(true);
+            hideLoader();
+        });
+
         difficultyGroup.addEventListener('click', e => {
             const btn = e.target.closest('button[data-value]');
             if (!btn) return;
@@ -905,11 +1185,10 @@ document.addEventListener('DOMContentLoaded', function() {
         dietSelector.addEventListener('change', async () => {
             const newDiet = dietSelector.value;
             showNotification('Saving your preference...', 'info');
-             try {
+            try {
                 const response = await fetch(`${API_BASE_URL}/user/${user.user_id}/update`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ dietary_preference: newDiet }),
+                    method: 'PUT', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({dietary_preference: newDiet}),
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
@@ -930,9 +1209,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showLoader('Generating your recipes...');
              try {
                 const response = await fetch(`${API_BASE_URL}/recipes/${user.user_id}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail);
@@ -943,161 +1220,7 @@ document.addEventListener('DOMContentLoaded', function() {
              finally { hideLoader(); }
         });
 
-        function displayRecipes(recipes) {
-            if (!recipes || recipes.length === 0) {
-                recipesContainer.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 dark:bg-gray-800 rounded-lg"><p class="text-gray-600 dark:text-gray-400">No recipes found.</p></div>`;
-                return;
-            }
-            recipesContainer.innerHTML = recipes.map((recipe, index) => `
-                <div class="feature-card cursor-pointer hover:border-green-500 dark:hover:border-green-400" data-recipe-index="${index}">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white pointer-events-none">${recipe.name}</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 pointer-events-none">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
-                    <p class="text-gray-600 dark:text-gray-300 my-2 pointer-events-none">${recipe.description}</p>
-                </div>`).join('');
-        }
-
-        async function fetchAndDisplayInventory() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`);
-                const data = await response.json();
-                if (!response.ok) {
-                    currentInventory = [];
-                    inventoryContainer.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your inventory is empty.</p>`;
-                    return;
-                }
-                currentInventory = data.items || [];
-                if (currentInventory.length === 0) {
-                    inventoryContainer.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your inventory is empty.</p>`;
-                } else {
-                    inventoryContainer.innerHTML = currentInventory.map(item => `
-                        <div class="flex justify-between items-center bg-green-50 dark:bg-green-900/50 p-2 rounded-lg animate-fade-in">
-                            <span class="text-green-800 dark:text-green-200 font-medium flex-1 mr-2">${item.item_name}</span>
-                            <div class="flex items-center">
-                                <button data-item-name="${item.item_name}" data-change="-1" class="bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">-</button>
-                                <span class="w-10 text-center font-semibold">${item.quantity}</span>
-                                <button data-item-name="${item.item_name}" data-change="1" class="bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">+</button>
-                            </div>
-                        </div>`).join('');
-                }
-            } catch (error) {
-                currentInventory = [];
-                inventoryContainer.innerHTML = `<p class="text-red-500">Error loading inventory.</p>`;
-            }
-        }
-
-        function initializeRecipeModal() {
-            const modal = document.getElementById('recipe-modal');
-            const closeBtn = document.getElementById('recipe-modal-close');
-            const modalFooter = document.getElementById('recipe-modal-footer');
-            let savedScrollPosition = 0;
-
-            recipesContainer.addEventListener('click', (e) => {
-                const card = e.target.closest('[data-recipe-index]');
-                if (card) {
-                    const recipeIndex = parseInt(card.dataset.recipeIndex, 10);
-                    const recipe = currentRecipes[recipeIndex];
-                    if (recipe) {
-                        openRecipeModal(recipe);
-                    }
-                }
-            });
-
-            async function openRecipeModal(recipe) {
-                document.getElementById('recipe-modal-title').textContent = recipe.name;
-                document.getElementById('recipe-modal-description').textContent = recipe.description;
-                document.getElementById('recipe-modal-prep-time').textContent = `Prep: ${recipe.prep_time_minutes} min`;
-                document.getElementById('recipe-modal-cook-time').textContent = `Cook: ${recipe.cook_time_minutes} min`;
-                document.getElementById('recipe-modal-instructions').innerHTML = recipe.instructions.map(step => `<li>${step}</li>`).join('');
-
-                const inventoryItemNamesLower = currentInventory.map(item => item.item_name.toLowerCase());
-                const missingIngredientStrings = [];
-
-                document.getElementById('recipe-modal-ingredients').innerHTML = recipe.ingredients.map(descriptiveIngredient => {
-                    const descriptiveIngredientLower = descriptiveIngredient.toLowerCase();
-                    const foundInInventory = inventoryItemNamesLower.some(inventoryItem => descriptiveIngredientLower.includes(inventoryItem));
-
-                    if (foundInInventory) {
-                        return `<li class="text-green-700 dark:text-green-400">${descriptiveIngredient} (In Stock)</li>`;
-                    } else {
-                        missingIngredientStrings.push(descriptiveIngredient);
-                        return `<li class="text-red-700 dark:text-red-400">${descriptiveIngredient} (Missing)</li>`;
-                    }
-                }).join('');
-
-                modalFooter.innerHTML = '';
-                if (purchaseExtras.checked && missingIngredientStrings.length > 0) {
-                     modalFooter.innerHTML = `
-                        <div class="absolute bottom-4 right-4">
-                            <button id="shop-missing-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg flex items-center gap-2">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg>
-                                <span>Add to Cart</span>
-                            </button>
-                        </div>
-                    `;
-
-                    document.getElementById('shop-missing-btn').addEventListener('click', async (e) => {
-                        const shopBtn = e.currentTarget;
-                        shopBtn.innerHTML = '<span>Cleaning Ingredients...</span>';
-                        shopBtn.disabled = true;
-                        try {
-                        const cleanResponse = await fetch(`${API_BASE_URL}/clean-ingredients`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ingredients: missingIngredientStrings })
-                        });
-                        const cleanedItems = await cleanResponse.json();
-                        if (!cleanResponse.ok) throw new Error('Failed to clean ingredients.');
-
-                        shopBtn.innerHTML = '<span>Generating Link...</span>';
-
-                        const shoppingResponse = await fetch(`${API_BASE_URL}/shopping`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ "additionalProp1": cleanedItems })
-                        });
-                        const shoppingData = await shoppingResponse.json();
-
-                        // --- CORRECTED ERROR HANDLING ---
-                        if (!shoppingResponse.ok) {
-                            // Check if the detailed error is an object and extract the message
-                            if (typeof shoppingData.detail === 'object' && shoppingData.detail !== null && shoppingData.detail.error) {
-                                throw new Error(shoppingData.detail.error);
-                            }
-                            // Fallback for other types of errors
-                            throw new Error(shoppingData.detail || 'Failed to get shopping link');
-                        }
-
-                        window.open(shoppingData.cart_url, '_blank');
-
-                    } catch(error) {
-                        showNotification(error.message, 'error');
-                    } finally {
-                        shopBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg><span>Add to Cart</span>`;
-                        shopBtn.disabled = false;
-                    }
-                    });
-                }
-
-                savedScrollPosition = window.scrollY;
-                document.body.classList.add('modal-open');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
-
-            const closeModal = () => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                document.body.classList.remove('modal-open');
-                window.scrollTo(0, savedScrollPosition);
-            };
-
-            closeBtn.addEventListener('click', closeModal);
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
-            });
-        }
-
-        // --- Initial Page Load ---
+        // --- INITIAL PAGE LOAD ---
         loadPreferences();
         const savedRecipes = JSON.parse(sessionStorage.getItem('lastGeneratedRecipes'));
         if (savedRecipes) {
@@ -1105,6 +1228,7 @@ document.addEventListener('DOMContentLoaded', function() {
             displayRecipes(currentRecipes);
         }
         await fetchAndDisplayInventory();
+        await fetchAndDisplayMealPlan();
         try {
             const response = await fetch(`${API_BASE_URL}/user/${user.user_id}`);
             const userData = await response.json();
@@ -1155,32 +1279,8 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         function markdownToHtml(text) {
             if (!text) return '';
-            let html = text.trim();
-            // Process paragraphs first
-            html = html.split(/\n{2,}/).map(p => {
-                if (/^(#{1,6}\s|[-*]\s)/.test(p)) {
-                    return p; // Don't wrap headers or list items in <p>
-                }
-                return p.trim() ? `<p>${p.replace(/\n/g, '<br>')}</p>` : '';
-            }).join('');
-
-            // Headers (e.g., #### Step 2 -> <h6>)
-            html = html.replace(/^(#{1,6})\s+(.*)$/gm, (match, hashes, content) => {
-                const level = Math.min(6, hashes.length + 2); // Start at h3 for style
-                return `<h${level} class="font-bold my-2">${content}</h${level}>`;
-            });
-            // Bold and Italic
-            html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
-                       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                       .replace(/\*(.*?)\*/g, '<em>$1</em>');
-            // Unordered lists
-            html = html.replace(/^\s*[-*]\s+(.*)$/gm, '<li>$1</li>');
-            html = html.replace(/(<\/li>\s*<li>)/g, '</li><li>');
-            const listRegex = /(<li>.*<\/li>)/s;
-            while (listRegex.test(html)) {
-                 html = html.replace(listRegex, '<ul>$1</ul>');
-            }
-            return html;
+            // Use the powerful 'marked' library to correctly parse the markdown
+            return marked.parse(text);
         }
         const addChatMessage = (message, sender, elementId = null) => {
             if (!chatWindow) return;

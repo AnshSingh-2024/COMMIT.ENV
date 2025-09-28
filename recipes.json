@@ -1,0 +1,101 @@
+[
+  {
+    "recipe_name": "Simple Lentil Soup",
+    "description": "A nutritious and easy-to-make soup with lentils, carrots, and celery.",
+    "diet_type": "Vegan",
+    "ingredients": [
+      { "name": "Brown or green lentils", "quantity": "1 cup, rinsed" },
+      { "name": "Carrots", "quantity": "2, chopped" },
+      { "name": "Celery", "quantity": "2 stalks, chopped" },
+      { "name": "Onion", "quantity": "1, chopped" },
+      { "name": "Vegetable broth", "quantity": "6 cups" },
+      { "name": "Thyme", "quantity": "1 tsp" }
+    ],
+    "instructions": [
+      "In a large pot, sauté onion, carrots, and celery until softened.",
+      "Add the rinsed lentils, vegetable broth, and thyme.",
+      "Bring to a boil, then reduce heat and simmer for 40-50 minutes, or until lentils are tender.",
+      "Season with salt and pepper to taste."
+    ]
+  },
+  {
+    "recipe_name": "Butter Chicken (Murgh Makhani)",
+    "description": "A world-famous Indian curry with tender chicken in a mildly spiced, buttery tomato sauce.",
+    "diet_type": "Non-Veg",
+    "ingredients": [
+      { "name": "Chicken thigh, boneless", "quantity": "500g, cubed" },
+      { "name": "Tomato puree", "quantity": "1.5 cups" },
+      { "name": "Heavy cream", "quantity": "1/2 cup" },
+      { "name": "Butter", "quantity": "3 tbsp" },
+      { "name": "Yogurt", "quantity": "1/2 cup (for marinade)" },
+      { "name": "Garam masala", "quantity": "1.5 tsp" },
+      { "name": "Kasuri Methi (dried fenugreek)", "quantity": "1 tbsp" }
+    ],
+    "instructions": [
+      "Marinate chicken in yogurt and spices for at least 30 minutes.",
+      "Grill or pan-fry the chicken until cooked through. Set aside.",
+      "In a pan, melt butter, add tomato puree and cook for 10 minutes.",
+      "Stir in the cream, garam masala, and kasuri methi.",
+      "Add the cooked chicken and simmer for 5-7 minutes."
+    ]
+  },
+  {
+    "recipe_name": "Aloo Gobi",
+    "description": "A classic vegetarian Indian dish made with potatoes (aloo) and cauliflower (gobi).",
+    "diet_type": "Veg",
+    "ingredients": [
+      { "name": "Potatoes", "quantity": "2 medium, cubed" },
+      { "name": "Cauliflower", "quantity": "1 small head, cut into florets" },
+      { "name": "Onion", "quantity": "1, chopped" },
+      { "name": "Turmeric powder", "quantity": "1 tsp" },
+      { "name": "Cumin seeds", "quantity": "1 tsp" },
+      { "name": "Coriander powder", "quantity": "1 tsp" }
+    ],
+    "instructions": [
+      "Heat oil in a pan and temper with cumin seeds.",
+      "Sauté the onion until translucent.",
+      "Add the potatoes, cauliflower, turmeric, and coriander powder.",
+      "Stir well, cover, and cook on low heat for 15-20 minutes, or until vegetables are tender.",
+      "Garnish with fresh cilantro."
+    ]
+  },
+  {
+    "recipe_name": "Scrambled Tofu",
+    "description": "A delicious and savory vegan alternative to scrambled eggs.",
+    "diet_type": "Vegan",
+    "ingredients": [
+      { "name": "Firm tofu", "quantity": "1 block, pressed" },
+      { "name": "Nutritional yeast", "quantity": "2 tbsp" },
+      { "name": "Turmeric powder", "quantity": "1/2 tsp (for color)" },
+      { "name": "Black salt (kala namak)", "quantity": "1/4 tsp (for eggy flavor)" },
+      { "name": "Onion", "quantity": "1/4, chopped" },
+      { "name": "Garlic powder", "quantity": "1/2 tsp" }
+    ],
+    "instructions": [
+      "Crumble the pressed tofu into a bowl.",
+      "Add nutritional yeast, turmeric, black salt, and garlic powder. Mix well.",
+      "Sauté onion in a non-stick pan until soft.",
+      "Add the tofu mixture and cook for 5-7 minutes, stirring occasionally, until heated through.",
+      "Serve immediately."
+    ]
+  },
+  {
+    "recipe_name": "Refreshing Mango Lassi",
+    "description": "A popular, creamy, and refreshing yogurt-based drink from India.",
+    "diet_type": "Veg",
+    "ingredients": [
+      { "name": "Ripe mangoes", "quantity": "1 cup, chopped" },
+      { "name": "Plain yogurt", "quantity": "1 cup" },
+      { "name": "Milk", "quantity": "1/2 cup" },
+      { "name": "Sugar or honey", "quantity": "2 tbsp (or to taste)" },
+      { "name": "Cardamom powder", "quantity": "a pinch" }
+    ],
+    "instructions": [
+      "Place mango chunks, yogurt, milk, and sugar in a blender.",
+      "Blend until smooth and creamy.",
+      "If the lassi is too thick, add a little more milk and blend again.",
+      "Pour into glasses, sprinkle with cardamom powder, and serve chilled."
+    ]
+  }
+
+]

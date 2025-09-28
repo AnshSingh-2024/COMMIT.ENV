@@ -172,3 +172,18 @@ class ForumAnswerCreate(BaseModel):
 class GardenChatPayload(BaseModel):
     prompt: str
 
+class MealPlanEntry(BaseModel):
+    day_of_week: str  # e.g., "Monday"
+    meal_type: str    # e.g., "Lunch"
+    recipe_name: str
+    recipe_ingredients: List[str] # Storing ingredients for the shopping list
+
+class MealPlan(BaseModel):
+    id: str = Field(alias="_id", default_factory=lambda: str(ObjectId()))
+    user_id: str
+    entries: List[MealPlanEntry] = []
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {ObjectId: str}
+
