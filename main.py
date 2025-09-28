@@ -2,6 +2,7 @@ import os
 import io
 import json
 import random
+from typing import Optional
 
 import requests
 from contextlib import asynccontextmanager
@@ -48,8 +49,6 @@ async def lifespan(app: FastAPI):
     yield
     db["client"].close()
     print("MongoDB connection closed.")
-
-
 app = FastAPI(
     title="HomeHarvest AI API",
     description="API for user management, inventory tracking, and recipe generation.",
@@ -89,7 +88,6 @@ async def signup(user_data: UserCreate):
     await users_collection.insert_one(new_user.model_dump(by_alias=True))
     return {"message": "User created successfully"}
 
-
 @app.post("/login", summary="User login")
 async def login(user_data: UserLogin):
     users_collection = db["inventory_db"].users
@@ -100,7 +98,6 @@ async def login(user_data: UserLogin):
     # Include the user's role in the session data
     return {"user_id": str(user["_id"]), "name": user["name"], "role": user.get("role", "user")}
 
-
 @app.get("/user/{user_id}", summary="Get user details")
 async def get_user(user_id: str):
     users_collection = db["inventory_db"].users
@@ -109,7 +106,6 @@ async def get_user(user_id: str):
         return {"name": user["name"], "email": user["email"],
                 "dietary_preference": user.get("dietary_preference", "Veg")}
     raise HTTPException(status_code=404, detail="User not found")
-
 
 @app.put("/user/{user_id}/update", summary="Update user password or preferences")
 async def update_user(user_id: str, payload: dict):
@@ -134,7 +130,6 @@ async def update_user(user_id: str, payload: dict):
 
     else:
         raise HTTPException(status_code=400, detail="Invalid update payload")
-
 
 # --- Inventory & Recipe Endpoints ---
 @app.post("/inventory/{user_id}", summary="Add items from image to inventory")
@@ -180,7 +175,6 @@ async def update_inventory_from_image(user_id: str, file: UploadFile = File(...)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
-
 @app.put("/inventory/{user_id}/update-item", summary="Update quantity of a single inventory item")
 async def update_inventory_item(user_id: str, item_update: InventoryItemUpdate):
     inventory_collection = db["inventory_db"].inventories
@@ -202,14 +196,12 @@ async def update_inventory_item(user_id: str, item_update: InventoryItemUpdate):
 
     return {"message": f"'{item_update.item_name}' updated successfully."}
 
-
 @app.get("/inventory/{user_id}", response_model=UserInventory, summary="Get a user's full inventory")
 async def get_user_inventory(user_id: str):
     inventory = await db["inventory_db"].inventories.find_one({"user_id": user_id})
     if inventory:
         return inventory
     raise HTTPException(status_code=404, detail="Inventory not found")
-
 
 @app.post("/recipes/{user_id}", summary="Generate recipes based on inventory")
 async def get_recipes(user_id: str, payload: RecipePayload):
@@ -321,7 +313,6 @@ async def get_garden(user_id: str):
     plants = await plants_cursor.to_list(length=None)
     return plants
 
-
 @app.post("/garden/diagnose/{plant_id}", summary="Diagnose a plant from a new image")
 async def diagnose_plant(plant_id: str, file: UploadFile = File(...)):
     if not file.content_type.startswith('image/'):
@@ -432,8 +423,6 @@ async def remove_plant_from_garden(plant_id: str, user_id: str):
     # Make sure to import ForumPostCreate and ForumAnswerCreate from models.
 
 
-# In main.py, replace your entire community endpoints block with this new APIRouter version.
-
 # --- Community & Gamification Endpoints ---
 
 # 1. Create a new router with a prefix
@@ -446,28 +435,44 @@ community_router = APIRouter(
 # 2. Change all decorators from @app to @community_router and simplify the paths
 
 @community_router.get("/recipes", summary="Get all shared recipes")
-async def get_all_community_recipes():
-    recipes_cursor = db["inventory_db"].community_recipes.find().sort("created_at", -1)
-    recipes = await recipes_cursor.to_list(length=100)
-    return recipes
+@community_router.get("/recipes", summary="Get all shared recipes with pagination and search")
+async def get_all_community_recipes(page: int = 1, limit: int = 9, search: Optional[str] = None):
+    recipes_collection = db["inventory_db"].community_recipes
+
+    query = {"hidden": {"$ne": True}}
+    if search:
+        query["$text"] = {"$search": search}
+
+    skip = (page - 1) * limit
+    total_items = await recipes_collection.count_documents(query)
+    total_pages = (total_items + limit - 1) // limit
+
+    recipes_cursor = recipes_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    recipes = await recipes_cursor.to_list(length=limit)
+
+    return {"items": recipes, "total_pages": total_pages, "current_page": page}
 
 
-@community_router.get("/forum", summary="Get all visible forum posts")
-async def get_all_forum_posts():
-    # This query now correctly filters to find documents where 'hidden' is NOT True.
-    # This ensures hidden posts are excluded for everyone.
-    posts_cursor = db["inventory_db"].forum_posts.find(
-        {"hidden": {"$ne": True}}
-    ).sort("created_at", -1)
+@community_router.get("/forum", summary="Get all visible forum posts with pagination and search")
+async def get_all_forum_posts(page: int = 1, limit: int = 10, search: Optional[str] = None):
+    posts_collection = db["inventory_db"].forum_posts
 
-    posts = await posts_cursor.to_list(length=100)
+    query = {"hidden": {"$ne": True}}
+    if search:
+        query["$text"] = {"$search": search}
 
-    # Also filter out hidden answers from each post
+    skip = (page - 1) * limit
+    total_items = await posts_collection.count_documents(query)
+    total_pages = (total_items + limit - 1) // limit
+
+    posts_cursor = posts_collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    posts = await posts_cursor.to_list(length=limit)
+
     for post in posts:
         if "answers" in post:
             post["answers"] = [ans for ans in post["answers"] if not ans.get("hidden", False)]
 
-    return posts
+    return {"items": posts, "total_pages": total_pages, "current_page": page}
 
 
 @community_router.get("/leaderboard", summary="Get the user leaderboard")

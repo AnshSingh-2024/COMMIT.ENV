@@ -218,6 +218,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return;
         }
+        // --- DOM & STATE MANAGEMENT ---
+        let currentRecipes = [];
+        let recipeCurrentPage = 1;
+        let recipeSearchTerm = '';
+        let forumCurrentPage = 1;
+        let forumSearchTerm = '';
+        let searchDebounceTimer;
 
         // --- DOM ELEMENT REFERENCES ---
         const tabs = document.querySelectorAll('.tab-btn');
@@ -229,6 +236,8 @@ document.addEventListener('DOMContentLoaded', function() {
             viewPost: document.getElementById('view-post-modal'),
         };
         const recipesContainer = document.getElementById('recipes-container');
+        const recipeSearchInput = document.getElementById('recipe-search-input');
+        const forumSearchInput = document.getElementById('forum-search-input');
         const shareRecipeForm = document.getElementById('share-recipe-form');
         const leaderboardContainer = document.getElementById('leaderboard-container');
         const forumContainer = document.getElementById('forum-container');
@@ -290,18 +299,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `}).join('');
         };
-        const fetchAndDisplayRecipes = async () => {
+        const fetchAndDisplayRecipes = async (page = 1, search = '') => {
             if (!recipesContainer) return;
             recipesContainer.innerHTML = '<p class="col-span-full">Loading recipes...</p>';
             try {
-                const response = await fetch(`${API_BASE_URL}/community/recipes`);
-                const recipes = await response.json();
-                renderRecipes(recipes);
+                const response = await fetch(`${API_BASE_URL}/community/recipes?page=${page}&limit=9&search=${encodeURIComponent(search)}`);
+                const data = await response.json();
+                currentRecipes = data.items;
+                renderRecipes(data.items);
+                renderPaginationControls(data.total_pages, data.current_page, 'recipes-pagination-controls', fetchAndDisplayRecipes, search);
             } catch (error) {
                 recipesContainer.innerHTML = '<p class="col-span-full text-red-500">Could not load recipes.</p>';
             }
         };
-
         const renderForumPosts = (posts) => {
             if (!forumContainer) return;
             if (posts.length === 0) {
@@ -323,17 +333,42 @@ document.addEventListener('DOMContentLoaded', function() {
             `).join('');
         };
 
-        const fetchAndDisplayForum = async () => {
+        const fetchAndDisplayForum = async (page = 1, search = '') => {
             if (!forumContainer) return;
-            forumContainer.innerHTML = '<p class="text-center">Loading discussions...</p>';
+            forumContainer.innerHTML = '<p>Loading discussions...</p>';
             try {
-                const response = await fetch(`${API_BASE_URL}/community/forum`);
-                const posts = await response.json();
-                renderForumPosts(posts);
+                const response = await fetch(`${API_BASE_URL}/community/forum?page=${page}&limit=10&search=${encodeURIComponent(search)}`);
+                const data = await response.json();
+                renderForumPosts(data.items);
+                renderPaginationControls(data.total_pages, data.current_page, 'forum-pagination-controls', fetchAndDisplayForum, search);
             } catch (error) {
-                forumContainer.innerHTML = '<p class="text-center text-red-500">Could not load discussions.</p>';
+                forumContainer.innerHTML = '<p class="text-red-500">Could not load discussions.</p>';
             }
         };
+        const renderPaginationControls = (totalPages, currentPage, containerId, callbackFn, currentSearch) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            if (totalPages <= 1) return;
+
+            const createButton = (text, page, isDisabled = false) => {
+                const btn = document.createElement('button');
+                btn.innerHTML = text;
+                btn.className = `px-3 py-1 rounded disabled:opacity-50 ${page === currentPage ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`;
+                btn.disabled = isDisabled;
+                if (!isDisabled) {
+                    btn.addEventListener('click', () => callbackFn(page, currentSearch));
+                }
+                return btn;
+            };
+
+            container.appendChild(createButton('&laquo;', currentPage - 1, currentPage === 1));
+            for (let i = 1; i <= totalPages; i++) {
+                container.appendChild(createButton(i, i));
+            }
+            container.appendChild(createButton('&raquo;', currentPage + 1, currentPage === totalPages));
+        };
+
 
         const fetchAndDisplayLeaderboard = async () => {
             if (!leaderboardContainer) return;
@@ -353,10 +388,29 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         const loadTabData = (tab) => {
-            if (tab === 'recipes') fetchAndDisplayRecipes();
-            else if (tab === 'forum') fetchAndDisplayForum();
+            if (tab === 'recipes') fetchAndDisplayRecipes(recipeCurrentPage, recipeSearchTerm);
+            else if (tab === 'forum') fetchAndDisplayForum(forumCurrentPage, forumSearchTerm);
             else if (tab === 'leaderboard') fetchAndDisplayLeaderboard();
         };
+
+        recipeSearchInput?.addEventListener('input', (e) => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                recipeSearchTerm = e.target.value;
+                recipeCurrentPage = 1;
+                fetchAndDisplayRecipes(recipeCurrentPage, recipeSearchTerm);
+            }, 500); // 500ms debounce
+        });
+
+        forumSearchInput?.addEventListener('input', (e) => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                forumSearchTerm = e.target.value;
+                forumCurrentPage = 1;
+                fetchAndDisplayForum(forumCurrentPage, forumSearchTerm);
+            }, 500); // 500ms debounce
+        });
+
 
         // --- EVENT LISTENERS ---
         tabs.forEach(tab => tab.addEventListener('click', () => {
@@ -460,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.addEventListener('click', async (e) => {
             const upvoteBtn = e.target.closest('.upvote-btn');
             const viewRecipeBtn = e.target.closest('.view-recipe-btn');
-            const deleteRecipeBtn = e.target.closest('.delete-recipe-btn'); 
+            const deleteRecipeBtn = e.target.closest('.delete-recipe-btn');
             const viewPostBtn = e.target.closest('.view-post-btn');
             const reportBtn = e.target.closest('.report-post-btn');
             const hideBtn = e.target.closest('.hide-post-btn');
