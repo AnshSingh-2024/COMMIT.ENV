@@ -874,27 +874,51 @@ document.addEventListener('DOMContentLoaded', async function () {
     const renderMealPlanner = () => {
         if (!mealPlannerContainer) return;
 
-        let tableHtml = '<table class="w-full text-sm text-left table-fixed"><thead><tr class="border-b dark:border-gray-600"><th class="w-28 py-2 px-2"></th>';
-        days.forEach(day => tableHtml += `<th class="py-2 px-2 text-center"><span class="hidden sm:inline">${day}</span><span class="sm:hidden">${day.substring(0,3)}</span></th>`);
-        tableHtml += '</tr></thead><tbody>';
+        // --- NEW CSS GRID LAYOUT ---
+        // Clear previous content
+        mealPlannerContainer.innerHTML = '';
 
+        // Create the grid container
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-8 gap-3px'; // 8 columns, with a fine gap for lines
+
+        // Add empty top-left corner
+        grid.appendChild(document.createElement('div'));
+
+        // Add Day Headers
+        days.forEach(day => {
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'text-center py-2 text-sm font-medium';
+            dayHeader.innerHTML = `<span class="hidden sm:inline">${day}</span><span class="sm:hidden">${day.substring(0,3)}</span>`;
+            grid.appendChild(dayHeader);
+        });
+
+        // Add Meal Type Headers and Meal Slots
         mealTypes.forEach(mealType => {
-            tableHtml += '<tr class="border-b dark:border-gray-600">';
-            tableHtml += `<td class="font-bold p-2">${mealType}</td>`;
+            // Add Meal Type Header
+            const mealHeader = document.createElement('div');
+            mealHeader.className = 'font-bold p-2 flex items-center w-full justify-center';
+            mealHeader.textContent = mealType;
+            grid.appendChild(mealHeader);
+
+            // Add Meal Slots for the week
             days.forEach(day => {
                 const planEntry = mealPlan[`${day}-${mealType}`];
                 const mealKey = `${day}-${mealType}`;
 
-                // Added the 'break-words' class to the div below
-                tableHtml += `
-                    <td class="p-2 border-l dark:border-gray-600 align-top min-h-[6rem] meal-slot" data-day="${day}" data-meal="${mealType}">
-                        ${planEntry ? `<div class="bg-green-100 dark:bg-green-900/50 p-2  rounded text-xs cursor-pointer " draggable="true" data-meal-key="${mealKey}" title="${planEntry.recipe_name}">${planEntry.recipe_name}</div>` : ''}
-                    </td>`;
+                const slot = document.createElement('div');
+                slot.className = 'p-1 border-t border-l dark:border-gray-700 min-h-[7rem] meal-slot';
+                slot.dataset.day = day;
+                slot.dataset.meal = mealType;
+
+                if (planEntry) {
+                    slot.innerHTML = `<div class="bg-green-100 dark:bg-green-900/50 p-2 rounded text-xs cursor-pointer h-full break-words" draggable="true" data-meal-key="${mealKey}" title="${planEntry.recipe_name}">${planEntry.recipe_name}</div>`;
+                }
+                grid.appendChild(slot);
             });
-            tableHtml += '</tr>';
         });
-        tableHtml += '</tbody></table>';
-        mealPlannerContainer.innerHTML = tableHtml;
+
+        mealPlannerContainer.appendChild(grid);
         addDropListeners();
         addDragListenersToPlannerItems();
     };
