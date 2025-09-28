@@ -3,12 +3,11 @@ import io
 import json
 import random
 from typing import Optional
-
+import certifi
 import requests
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import google.generativeai as genai
-# At the top of main.py
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Body, APIRouter
 from fastapi.responses import JSONResponse,StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +27,7 @@ from models import (
 from Amazon_Scraper import find_single_amazon_asin
 import httpx
 
+
 # --- Configuration & Initialization ---
 load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
@@ -38,12 +38,15 @@ if not GOOGLE_API_KEY or not MONGO_URI:
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
+
 db = {}
+
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    db["client"] = AsyncIOMotorClient(MONGO_URI)
+    db["client"] = AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
+
     db["inventory_db"] = db["client"].inventoryDB
     print("Successfully connected to MongoDB.")
     yield
