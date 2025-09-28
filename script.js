@@ -829,470 +829,425 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-    async function initializeKitchenPage() {
-        const user = getSession();
-        if (!user) return;
+async function initializeKitchenPage() {
+    const user = getSession();
+    if (!user) return;
 
-        let currentRecipes = [];
-        let currentInventory = [];
-        let mealPlan = {};
-        let currentPantryFile = null;
+    let currentRecipes = [];
+    let currentInventory = [];
+    let mealPlan = {};
+    let currentPantryFile = null;
 
-        // --- DOM ELEMENT REFERENCES ---
-        const difficultyGroup = document.getElementById('difficulty-group');
-        const timeSelect = document.getElementById('time-available');
-        const servingsInput = document.getElementById('servings');
-        const servingsDec = document.getElementById('servings-decrement');
-        const servingsInc = document.getElementById('servings-increment');
-        const purchaseExtras = document.getElementById('purchase-extras');
-        const cuisineInput = document.getElementById('cuisine');
-        const dietSelector = document.getElementById('diet-preference-selector');
-        const generateBtn = document.getElementById('generate-recipes');
-        const inventoryContainer = document.getElementById('inventory-display');
-        const recipesContainer = document.getElementById('featured-recipes-container');
-        const pantryUploadInput = document.getElementById('pantry-upload');
-        const pantryUploadArea = document.getElementById('pantry-upload-area');
-        const pantryPreview = document.getElementById('pantry-preview');
-        const pantryImage = document.getElementById('pantry-image');
-        const pantryConfirmBtn = document.getElementById('pantry-confirm-btn');
-        const pantryRemoveBtn = document.getElementById('pantry-remove-btn');
-        const mealPlannerContainer = document.getElementById('meal-planner-container');
-        const savePlanBtn = document.getElementById('save-plan-btn');
-        const shoppingListBtn = document.getElementById('shopping-list-btn');
-        const recipeModal = document.getElementById('recipe-modal');
-        const shoppingListModal = document.getElementById('shopping-list-modal');
-        const removeDropZone = document.getElementById('remove-drop-zone');
+    // --- DOM ELEMENT REFERENCES ---
+    const difficultyGroup = document.getElementById('difficulty-group');
+    const timeSelect = document.getElementById('time-available');
+    const servingsInput = document.getElementById('servings');
+    const servingsDec = document.getElementById('servings-decrement');
+    const servingsInc = document.getElementById('servings-increment');
+    const purchaseExtras = document.getElementById('purchase-extras');
+    const cuisineInput = document.getElementById('cuisine');
+    const dietSelector = document.getElementById('diet-preference-selector');
+    const generateBtn = document.getElementById('generate-recipes');
+    const inventoryContainer = document.getElementById('inventory-display');
+    const recipesContainer = document.getElementById('featured-recipes-container');
+    const pantryUploadInput = document.getElementById('pantry-upload');
+    const pantryUploadArea = document.getElementById('pantry-upload-area');
+    const pantryPreview = document.getElementById('pantry-preview');
+    const pantryImage = document.getElementById('pantry-image');
+    const pantryConfirmBtn = document.getElementById('pantry-confirm-btn');
+    const pantryRemoveBtn = document.getElementById('pantry-remove-btn');
+    const mealPlannerContainer = document.getElementById('meal-planner-container');
+    const savePlanBtn = document.getElementById('save-plan-btn');
+    const shoppingListBtn = document.getElementById('shopping-list-btn');
+    const recipeModal = document.getElementById('recipe-modal');
+    const shoppingListModal = document.getElementById('shopping-list-modal');
+    const removeDropZone = document.getElementById('remove-drop-zone');
 
-        // --- UNIFIED MODAL & HELPER FUNCTIONS ---
-        const openModal = (modal) => modal && modal.classList.replace('hidden', 'flex');
-        const closeModal = (modal) => modal && modal.classList.replace('flex', 'hidden');
-
-        // --- MEAL PLANNER LOGIC ---
-        const days = ['Mon', 'Tues', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
-
-        const renderMealPlanner = () => {
-            if (!mealPlannerContainer) return;
-            let tableHtml = '<table class="w-full text-sm text-left table-fixed"><thead><tr class="border-b dark:border-gray-600"><th class="w-28 py-2 px-2"></th>';
-            days.forEach(day => tableHtml += `<th class="py-2 px-2 text-center"><span class="hidden sm:inline">${day}</span><span class="sm:hidden">${day.substring(0, 3)}</span></th>`);
-            tableHtml += '</tr></thead><tbody>';
-            mealTypes.forEach(mealType => {
-                tableHtml += '<tr class="border-b dark:border-gray-600">';
-                tableHtml += `<td class="font-bold p-2">${mealType}</td>`;
-                days.forEach(day => {
-                    const planEntry = mealPlan[`${day}-${mealType}`];
-                    const mealKey = `${day}-${mealType}`;
-                    tableHtml += `
-                        <td class="p-2 border-l dark:border-gray-600 align-top h-24 meal-slot" data-day="${day}" data-meal="${mealType}">
-                            ${planEntry ? `<div class="bg-green-100 dark:bg-green-900/50 p-2 rounded text-xs cursor-pointer truncate" draggable="true" data-meal-key="${mealKey}" title="${planEntry.recipe_name}">${planEntry.recipe_name}</div>` : ''}
-                        </td>`;
-                });
-                tableHtml += '</tr>';
-            });
-            tableHtml += '</tbody></table>';
-            mealPlannerContainer.innerHTML = tableHtml;
-            addDropListeners();
-            addDragListenersToPlannerItems();
-        };
-
-
-        const addDragListeners = () => {
-            document.querySelectorAll('#featured-recipes-container .feature-card').forEach(card => {
-                card.setAttribute('draggable', true);
-                card.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('recipeIndex', e.target.dataset.recipeIndex);
-                    setTimeout(() => e.target.classList.add('opacity-50'), 0);
-                });
-                card.addEventListener('dragend', (e) => e.target.classList.remove('opacity-50'));
-            });
-        };
-
-        const addDropListeners = () => {
-            document.querySelectorAll('.meal-slot').forEach(slot => {
-                slot.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    slot.classList.add('bg-green-50', 'dark:bg-gray-700');
-                });
-                slot.addEventListener('dragleave', (e) => slot.classList.remove('bg-green-50', 'dark:bg-gray-700'));
-                slot.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    slot.classList.remove('bg-green-50', 'dark:bg-gray-700');
-
-                    const recipeIndex = e.dataTransfer.getData('recipeIndex');
-                    const movingMealKey = e.dataTransfer.getData('mealKey');
-                    const day = slot.dataset.day;
-                    const mealType = slot.dataset.meal;
-
-                    if (movingMealKey) { // This handles moving a meal that's already in the planner
-                        const recipeToMove = mealPlan[movingMealKey];
-                        delete mealPlan[movingMealKey];
-                        mealPlan[`${day}-${mealType}`] = {...recipeToMove, day_of_week: day, meal_type: mealType};
-                    } else if (recipeIndex) { // This handles adding a new recipe from the list
-                        const recipe = currentRecipes[parseInt(recipeIndex, 10)];
-                        if (!recipe) return;
-                        mealPlan[`${day}-${mealType}`] = {day_of_week: day, meal_type: mealType, ...recipe};
-                    }
-                    renderMealPlanner();
-                });
-            });
-        };
-
-        const addDragListenersToPlannerItems = () => {
-            document.querySelectorAll('[data-meal-key]').forEach(item => {
-                item.setAttribute('draggable', true);
-                item.addEventListener('dragstart', (e) => {
-                    // Set a different data type to distinguish from new recipes
-                    e.dataTransfer.setData('mealKey', e.target.dataset.mealKey);
-                    removeDropZone.classList.remove('hidden', 'translate-y-full');
-                });
-                item.addEventListener('dragend', () => {
-                    removeDropZone.classList.add('translate-y-full');
-                    setTimeout(() => removeDropZone.classList.add('hidden'), 300);
-                });
-            });
-        };
-
-        removeDropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            removeDropZone.classList.add('bg-red-700');
-        });
-        removeDropZone.addEventListener('dragleave', () => {
-            removeDropZone.classList.remove('bg-red-700');
-        });
-        removeDropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const mealKey = e.dataTransfer.getData('mealKey');
-            if (mealPlan[mealKey]) {
-                delete mealPlan[mealKey];
-                renderMealPlanner();
-                savePlan(); // Automatically save after removing
-                showNotification('Meal removed from plan.', 'info');
-            }
-            removeDropZone.classList.add('translate-y-full');
-            setTimeout(() => removeDropZone.classList.add('hidden'), 300);
-        });
-
-        const savePlan = async (showNotificationAfter = false) => {
-            try {
-                const payload = {user_id: user.user_id, entries: Object.values(mealPlan)};
-                const response = await fetch(`${API_BASE_URL}/meal-plan/${user.user_id}`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail);
-                if (showNotificationAfter) showNotification(data.message, 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        };
-
-        const fetchAndDisplayMealPlan = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/meal-plan/${user.user_id}`);
-                const data = await response.json();
-                mealPlan = {};
-                if (data && data.entries) {
-                    data.entries.forEach(entry => {
-                        mealPlan[`${entry.day_of_week}-${entry.meal_type}`] = entry;
-                    });
-                }
-                renderMealPlanner();
-            } catch (error) {
-                showNotification('Could not load your meal plan.', 'error');
-                renderMealPlanner();
-            }
-        };
-
-        const openRecipeModal = (recipe) => {
-            if (!recipe) return;
-            document.getElementById('recipe-modal-title').textContent = recipe.name || recipe.recipe_name;
-            document.getElementById('recipe-modal-description').textContent = recipe.description;
-            document.getElementById('recipe-modal-prep-time').textContent = `Prep: ${recipe.prep_time_minutes} min`;
-            document.getElementById('recipe-modal-cook-time').textContent = `Cook: ${recipe.cook_time_minutes} min`;
-            document.getElementById('recipe-modal-instructions').innerHTML = recipe.instructions.map(step => `<li>${step}</li>`).join('');
-            const nutritionContainer = document.getElementById('recipe-modal-nutrition');
-            if (nutritionContainer && recipe.nutritional_info) {
-                nutritionContainer.innerHTML = `
-                    <div><p class="font-bold">${recipe.nutritional_info.calories || 'N/A'}</p><p class="text-xs text-gray-500">Calories</p></div>
-                    <div><p class="font-bold">${recipe.nutritional_info.protein || 'N/A'}</p><p class="text-xs text-gray-500">Protein</p></div>
-                    <div><p class="font-bold">${recipe.nutritional_info.carbs || 'N/A'}</p><p class="text-xs text-gray-500">Carbs</p></div>
-                    <div><p class="font-bold">${recipe.nutritional_info.fats || 'N/A'}</p><p class="text-xs text-gray-500">Fats</p></div>
-                `;
-            } else if (nutritionContainer) {
-                nutritionContainer.innerHTML = '<p class="col-span-full text-sm text-gray-500">Nutritional information not available.</p>';
-            }
-            const inventoryItemNamesLower = currentInventory.map(item => item.item_name.toLowerCase());
-            const missingIngredientStrings = [];
-            document.getElementById('recipe-modal-ingredients').innerHTML = recipe.ingredients.map(descriptiveIngredient => {
-                const descriptiveIngredientLower = descriptiveIngredient.toLowerCase();
-                const foundInInventory = inventoryItemNamesLower.some(inventoryItem => descriptiveIngredientLower.includes(inventoryItem));
-                if (foundInInventory) return `<li class="text-green-700 dark:text-green-400">${descriptiveIngredient} (In Stock)</li>`;
-                else {
-                    missingIngredientStrings.push(descriptiveIngredient);
-                    return `<li class="text-red-700 dark:text-red-400">${descriptiveIngredient} (Missing)</li>`;
-                }
-            }).join('');
-
-            const recipeFooter = document.getElementById('recipe-modal-footer');
-            recipeFooter.innerHTML = '';
-            if (missingIngredientStrings.length > 0) {
-                const shopBtn = document.createElement('button');
-                shopBtn.id = 'shop-missing-btn';
-                shopBtn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2';
-                shopBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg><span>Add Missing to Cart</span>`;
-                recipeFooter.appendChild(shopBtn);
-                shopBtn.addEventListener('click', async () => { /* ... (full add to cart logic) ... */
-                });
-            }
-            openModal(recipeModal);
-        };
-
-
-        const displayRecipes = (recipes) => {
-            if (!recipes || recipes.length === 0) {
-                recipesContainer.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 dark:bg-gray-800 rounded-lg"><p class="text-gray-600 dark:text-gray-400">Set your preferences and click "Generate Recipes" to start!</p></div>`;
-                return;
-            }
-            recipesContainer.innerHTML = recipes.map((recipe, index) => `
-            <div class="feature-card cursor-grab hover:border-green-500 dark:hover:border-green-400" draggable="true" data-recipe-index="${index}">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white pointer-events-none">${recipe.name}</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 pointer-events-none">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
-            </div>`).join('');
-            addDragListeners();
-        };
-
-        const fetchAndDisplayInventory = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`);
-                const data = await response.json();
-                if (!response.ok) {
-                    currentInventory = [];
-                } else {
-                    currentInventory = data.items || [];
-                }
-            } catch (error) {
-                currentInventory = [];
-                console.error("Error loading inventory:", error);
-            } finally {
-                if (currentInventory.length === 0) {
-                    inventoryContainer.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your inventory is empty.</p>`;
-                } else {
-                    inventoryContainer.innerHTML = currentInventory.map(item => `
-                    <div class="flex justify-between items-center bg-green-50 dark:bg-green-900/50 p-2 rounded-lg animate-fade-in">
-                        <span class="text-green-800 dark:text-green-200 font-medium flex-1 mr-2">${item.item_name}</span>
-                        <div class="flex items-center">
-                            <button data-item-name="${item.item_name}" data-change="-1" class="bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">-</button>
-                            <span class="w-10 text-center font-semibold">${item.quantity}</span>
-                            <button data-item-name="${item.item_name}" data-change="1" class="bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">+</button>
-                        </div>
-                    </div>`).join('');
-                }
-            }
-        };
-
-        function savePreferences() {
-            const prefs = {
-                difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value || 'Easy',
-                time: timeSelect.value, servings: servingsInput.value,
-                purchase: purchaseExtras.checked, cuisine: cuisineInput.value
-            };
-            localStorage.setItem('kitchenPreferences', JSON.stringify(prefs));
+    // --- UNIFIED MODAL & HELPER FUNCTIONS ---
+    const openModal = (modal) => {
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('modal-open');
         }
-
-        function loadPreferences() {
-            const prefs = JSON.parse(localStorage.getItem('kitchenPreferences'));
-            if (!prefs) return;
-            difficultyGroup.querySelectorAll('button').forEach(b => {
-                b.classList.remove('bg-green-600', 'text-white');
-                if (b.dataset.value === prefs.difficulty) b.classList.add('bg-green-600', 'text-white');
-            });
-            timeSelect.value = prefs.time;
-            servingsInput.value = prefs.servings;
-            cuisineInput.value = prefs.cuisine;
-            purchaseExtras.checked = prefs.purchase;
-            updatePurchaseToggleUI();
-        }
-
-        function updatePurchaseToggleUI() {
-            const knob = purchaseExtras.parentElement.querySelector('span > span');
-            const track = knob.parentElement;
-            knob.style.transform = purchaseExtras.checked ? 'translateX(16px)' : 'translateX(0px)';
-            track.classList.toggle('bg-green-500', purchaseExtras.checked);
-            track.classList.toggle('bg-gray-200', !purchaseExtras.checked);
-            track.classList.toggle('dark:bg-gray-600', !purchaseExtras.checked);
-        }
-
-        // --- EVENT LISTENERS ---
-        pantryUploadArea.addEventListener('click', () => pantryUploadInput.click());
-        pantryUploadInput.addEventListener('change', e => {
-            const file = e.target.files[0];
-            if (file) {
-                currentPantryFile = file;
-                pantryImage.src = URL.createObjectURL(file);
-                pantryPreview.classList.remove('hidden');
-                pantryUploadArea.classList.add('hidden');
-            }
-        });
-        pantryRemoveBtn.addEventListener('click', () => {
-            currentPantryFile = null;
-            pantryUploadInput.value = '';
-            pantryPreview.classList.add('hidden');
-            pantryUploadArea.classList.remove('hidden');
-        });
-        pantryConfirmBtn.addEventListener('click', async () => {
-            if (!currentPantryFile) return;
-            const formData = new FormData();
-            formData.append('file', currentPantryFile);
-            showLoader('Analyzing your pantry...');
-            try {
-                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`, {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail);
-                showNotification(data.message || 'Inventory updated!', 'success');
-                await fetchAndDisplayInventory();
-            } catch (error) {
-                showNotification(error.message, 'error');
-            } finally {
-                hideLoader();
-                pantryRemoveBtn.click();
-            }
-        });
-
-        inventoryContainer.addEventListener('click', async (e) => {
-            const button = e.target.closest('button[data-item-name]');
-            if (!button) return;
-            const itemName = button.dataset.itemName;
-            const change = parseInt(button.dataset.change, 10);
-            try {
-                const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}/update-item`, {
-                    method: 'PUT', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({item_name: itemName, change: change})
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail);
-                await fetchAndDisplayInventory();
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        });
-
-        recipesContainer.addEventListener('click', (e) => {
-            const card = e.target.closest('[data-recipe-index]');
-            if (card) {
-                const recipeIndex = parseInt(card.dataset.recipeIndex, 10);
-                openRecipeModal(currentRecipes[recipeIndex]);
-            }
-        });
-
-        document.getElementById('recipe-modal-close')?.addEventListener('click', () => closeModal(recipeModal));
-        recipeModal?.addEventListener('click', (e) => {
-            if (e.target === recipeModal) closeModal(recipeModal);
-        });
-        document.getElementById('shopping-list-close-btn')?.addEventListener('click', () => closeModal(shoppingListModal));
-        shoppingListModal?.addEventListener('click', (e) => {
-            if (e.target === shoppingListModal) closeModal(shoppingListModal);
-        });
-        savePlanBtn.addEventListener('click', async () => {
-            showLoader('Saving your plan...');
-            await savePlan(true);
-            hideLoader();
-        });
-        mealPlannerContainer.addEventListener('click', (e) => {
-            const mealItem = e.target.closest('[data-meal-key]');
-            if (mealItem) {
-                const mealKey = mealItem.dataset.mealKey;
-                const recipe = mealPlan[mealKey];
-                if (recipe) {
-                    openRecipeModal(recipe);
-                }
-            }
-        });
-
-
-        difficultyGroup.addEventListener('click', e => {
-            const btn = e.target.closest('button[data-value]');
-            if (!btn) return;
-            difficultyGroup.querySelectorAll('button').forEach(b => b.classList.remove('bg-green-600', 'text-white'));
-            btn.classList.add('bg-green-600', 'text-white');
-            savePreferences();
-        });
-        servingsDec.addEventListener('click', () => {
-            if (servingsInput.value > 1) servingsInput.value--;
-            savePreferences();
-        });
-        servingsInc.addEventListener('click', () => {
-            servingsInput.value++;
-            savePreferences();
-        });
-        purchaseExtras.addEventListener('change', () => {
-            updatePurchaseToggleUI();
-            savePreferences();
-        });
-        [timeSelect, servingsInput, cuisineInput, dietSelector].forEach(el => el.addEventListener('change', savePreferences));
-
-        dietSelector.addEventListener('change', async () => {
-            const newDiet = dietSelector.value;
-            showNotification('Saving your preference...', 'info');
-            try {
-                const response = await fetch(`${API_BASE_URL}/user/${user.user_id}/update`, {
-                    method: 'PUT', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({dietary_preference: newDiet}),
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail);
-                showNotification('Diet preference saved!', 'success');
-            } catch (error) {
-                showNotification(error.message, 'error');
-            }
-        });
-
-        generateBtn.addEventListener('click', async () => {
-            savePreferences();
-            const payload = {
-                Difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value,
-                TimeAvailable: parseInt(timeSelect.value), Shopping: purchaseExtras.checked,
-                Cuisine: cuisineInput.value || 'Any', Serving: parseInt(servingsInput.value),
-                Diet: dietSelector.value
-            };
-            showLoader('Generating your recipes...');
-            try {
-                const response = await fetch(`${API_BASE_URL}/recipes/${user.user_id}`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload),
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail);
-                currentRecipes = data.Recipes;
-                displayRecipes(currentRecipes);
-                sessionStorage.setItem('lastGeneratedRecipes', JSON.stringify(currentRecipes));
-            } catch (error) {
-                showNotification(error.message, 'error');
-            } finally {
-                hideLoader();
-            }
-        });
-
-
-        // --- INITIAL PAGE LOAD ---
-        loadPreferences();
-        const savedRecipes = JSON.parse(sessionStorage.getItem('lastGeneratedRecipes'));
-        if (savedRecipes) {
-            currentRecipes = savedRecipes;
-            displayRecipes(currentRecipes);
-        }
-        await fetchAndDisplayInventory();
-        await fetchAndDisplayMealPlan();
-        try {
-            const response = await fetch(`${API_BASE_URL}/user/${user.user_id}`);
-            const userData = await response.json();
-            if (response.ok) dietSelector.value = userData.dietary_preference;
-        } catch (error) {
-            console.error("Could not load user diet preference.");
+    };
+    const closeModal = (modal) => {
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.classList.remove('modal-open');
         }
     };
 
+    // --- MEAL PLANNER LOGIC ---
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const mealTypes = ['Breakfast', 'Lunch', 'Dinner'];
+
+    const renderMealPlanner = () => {
+        if (!mealPlannerContainer) return;
+        let tableHtml = '<table class="w-full text-sm text-left table-fixed"><thead><tr class="border-b dark:border-gray-600"><th class="w-28 py-2 px-2"></th>';
+        days.forEach(day => tableHtml += `<th class="py-2 px-2 text-center"><span class="hidden sm:inline">${day}</span><span class="sm:hidden">${day.substring(0,3)}</span></th>`);
+        tableHtml += '</tr></thead><tbody>';
+        mealTypes.forEach(mealType => {
+            tableHtml += '<tr class="border-b dark:border-gray-600">';
+            tableHtml += `<td class="font-bold p-2">${mealType}</td>`;
+            days.forEach(day => {
+                const planEntry = mealPlan[`${day}-${mealType}`];
+                const mealKey = `${day}-${mealType}`;
+                tableHtml += `
+                    <td class="p-2 border-l dark:border-gray-600 align-top h-24 meal-slot" data-day="${day}" data-meal="${mealType}">
+                        ${planEntry ? `<div class="bg-green-100 dark:bg-green-900/50 p-2 rounded text-xs cursor-pointer truncate" draggable="true" data-meal-key="${mealKey}" title="${planEntry.recipe_name}">${planEntry.recipe_name}</div>` : ''}
+                    </td>`;
+            });
+            tableHtml += '</tr>';
+        });
+        tableHtml += '</tbody></table>';
+        mealPlannerContainer.innerHTML = tableHtml;
+        addDropListeners();
+        addDragListenersToPlannerItems();
+    };
+
+    const addDragListenersToPlannerItems = () => {
+        document.querySelectorAll('[data-meal-key]').forEach(item => {
+            item.setAttribute('draggable', true);
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('mealKey', e.target.dataset.mealKey);
+                removeDropZone.classList.remove('hidden', 'translate-y-full');
+            });
+            item.addEventListener('dragend', () => {
+                removeDropZone.classList.add('translate-y-full');
+                setTimeout(() => removeDropZone.classList.add('hidden'), 300);
+            });
+        });
+    };
+
+    const addDragListeners = () => {
+        document.querySelectorAll('#featured-recipes-container .feature-card').forEach(card => {
+            card.setAttribute('draggable', true);
+            card.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('recipeIndex', e.target.dataset.recipeIndex);
+                setTimeout(() => e.target.classList.add('opacity-50'), 0);
+            });
+            card.addEventListener('dragend', (e) => e.target.classList.remove('opacity-50'));
+        });
+    };
+
+    const addDropListeners = () => {
+        document.querySelectorAll('.meal-slot').forEach(slot => {
+            slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('bg-green-50', 'dark:bg-gray-700'); });
+            slot.addEventListener('dragleave', (e) => slot.classList.remove('bg-green-50', 'dark:bg-gray-700'));
+            slot.addEventListener('drop', (e) => {
+                e.preventDefault();
+                slot.classList.remove('bg-green-50', 'dark:bg-gray-700');
+
+                const recipeIndex = e.dataTransfer.getData('recipeIndex');
+                const movingMealKey = e.dataTransfer.getData('mealKey');
+                const day = slot.dataset.day;
+                const mealType = slot.dataset.meal;
+
+                if (movingMealKey) {
+                    const recipeToMove = mealPlan[movingMealKey];
+                    delete mealPlan[movingMealKey];
+                    mealPlan[`${day}-${mealType}`] = { ...recipeToMove, day_of_week: day, meal_type: mealType };
+                } else if (recipeIndex) {
+                    const recipe = currentRecipes[parseInt(recipeIndex, 10)];
+                    if (!recipe) return;
+                    mealPlan[`${day}-${mealType}`] = {
+                        day_of_week: day, meal_type: mealType, recipe_name: recipe.name, ...recipe
+                    };
+                }
+                renderMealPlanner();
+            });
+        });
+    };
+
+    const savePlan = async (showNotificationAfter = false) => {
+        try {
+            const payload = { user_id: user.user_id, entries: Object.values(mealPlan) };
+            const response = await fetch(`${API_BASE_URL}/meal-plan/${user.user_id}`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail);
+            if (showNotificationAfter) showNotification(data.message, 'success');
+        } catch (error) { showNotification(error.message, 'error'); }
+    };
+
+    const fetchAndDisplayMealPlan = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/meal-plan/${user.user_id}`);
+            const data = await response.json();
+            mealPlan = {};
+            if (data && data.entries) {
+                data.entries.forEach(entry => {
+                    mealPlan[`${entry.day_of_week}-${entry.meal_type}`] = entry;
+                });
+            }
+            renderMealPlanner();
+        } catch (error) {
+            showNotification('Could not load your meal plan.', 'error');
+            renderMealPlanner();
+        }
+    };
+
+    const openRecipeModal = (recipe) => {
+        if (!recipe) return;
+        document.getElementById('recipe-modal-title').textContent = recipe.name || recipe.recipe_name;
+        document.getElementById('recipe-modal-description').textContent = recipe.description;
+        document.getElementById('recipe-modal-prep-time').textContent = `Prep: ${recipe.prep_time_minutes} min`;
+        document.getElementById('recipe-modal-cook-time').textContent = `Cook: ${recipe.cook_time_minutes} min`;
+        document.getElementById('recipe-modal-instructions').innerHTML = recipe.instructions.map(step => `<li>${step}</li>`).join('');
+        const nutritionContainer = document.getElementById('recipe-modal-nutrition');
+        if (nutritionContainer && recipe.nutritional_info) {
+            nutritionContainer.innerHTML = `
+                <div><p class="font-bold">${recipe.nutritional_info.calories || 'N/A'}</p><p class="text-xs text-gray-500">Calories</p></div>
+                <div><p class="font-bold">${recipe.nutritional_info.protein || 'N/A'}</p><p class="text-xs text-gray-500">Protein</p></div>
+                <div><p class="font-bold">${recipe.nutritional_info.carbs || 'N/A'}</p><p class="text-xs text-gray-500">Carbs</p></div>
+                <div><p class="font-bold">${recipe.nutritional_info.fats || 'N/A'}</p><p class="text-xs text-gray-500">Fats</p></div>`;
+        } else if (nutritionContainer) {
+             nutritionContainer.innerHTML = '<p class="col-span-full text-sm text-gray-500">Nutritional information not available.</p>';
+        }
+        const inventoryItemNamesLower = currentInventory.map(item => item.item_name.toLowerCase());
+        const missingIngredientStrings = [];
+        document.getElementById('recipe-modal-ingredients').innerHTML = recipe.ingredients.map(descriptiveIngredient => {
+            const descriptiveIngredientLower = descriptiveIngredient.toLowerCase();
+            const foundInInventory = inventoryItemNamesLower.some(inventoryItem => descriptiveIngredientLower.includes(inventoryItem));
+            if (foundInInventory) return `<li class="text-green-700 dark:text-green-400">${descriptiveIngredient} (In Stock)</li>`;
+            else {
+                missingIngredientStrings.push(descriptiveIngredient);
+                return `<li class="text-red-700 dark:text-red-400">${descriptiveIngredient} (Missing)</li>`;
+            }
+        }).join('');
+        const recipeFooter = document.getElementById('recipe-modal-footer');
+        recipeFooter.innerHTML = '';
+        if (missingIngredientStrings.length > 0) {
+            const shopBtn = document.createElement('button');
+            shopBtn.id = 'shop-missing-btn';
+            shopBtn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2';
+            shopBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg><span>Add Missing to Cart</span>`;
+            recipeFooter.appendChild(shopBtn);
+            shopBtn.addEventListener('click', async () => {
+                shopBtn.disabled = true;
+                shopBtn.innerHTML = '<span>Processing...</span>';
+                try {
+                    const cleanResponse = await fetch(`${API_BASE_URL}/clean-ingredients`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ingredients: missingIngredientStrings }) });
+                    const cleanedItems = await cleanResponse.json();
+                    if (!cleanResponse.ok) throw new Error('Failed to parse ingredients for shopping.');
+                    shopBtn.innerHTML = '<span>Generating Link...</span>';
+                    const shoppingResponse = await fetch(`${API_BASE_URL}/shopping`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ "additionalProp1": cleanedItems }) });
+                    const shoppingData = await shoppingResponse.json();
+                    if (!shoppingResponse.ok) {
+                        let detailMessage = shoppingData.detail;
+                        if (typeof detailMessage === 'object' && detailMessage !== null && detailMessage.error) { throw new Error(detailMessage.error); }
+                        throw new Error(detailMessage || 'Failed to get shopping link');
+                    }
+                    window.open(shoppingData.cart_url, '_blank');
+                } catch(error) { showNotification(error.message, 'error'); }
+                finally {
+                    shopBtn.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path></svg><span>Add Missing to Cart</span>`;
+                    shopBtn.disabled = false;
+                }
+            });
+        }
+        openModal(recipeModal);
+    };
+
+    const displayRecipes = (recipes) => {
+        if (!recipes || recipes.length === 0) {
+            recipesContainer.innerHTML = `<div class="text-center py-10 px-6 bg-gray-50 dark:bg-gray-800 rounded-lg"><p class="text-gray-600 dark:text-gray-400">Set your preferences and click "Generate Recipes" to start!</p></div>`;
+            return;
+        }
+        currentRecipes = recipes;
+        recipesContainer.innerHTML = recipes.map((recipe, index) => `
+        <div class="feature-card cursor-grab hover:border-green-500 dark:hover:border-green-400" draggable="true" data-recipe-index="${index}">
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white pointer-events-none">${recipe.name}</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 pointer-events-none">Prep: ${recipe.prep_time_minutes} min | Cook: ${recipe.cook_time_minutes} min</p>
+        </div>`).join('');
+        addDragListeners();
+    };
+
+    const fetchAndDisplayInventory = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`);
+            const data = await response.json();
+            currentInventory = (response.ok && data.items) ? data.items : [];
+        } catch (error) {
+            currentInventory = [];
+            console.error("Error loading inventory:", error);
+        } finally {
+            if (currentInventory.length === 0) {
+                inventoryContainer.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Your inventory is empty.</p>`;
+            } else {
+                inventoryContainer.innerHTML = currentInventory.map(item => `
+                <div class="flex justify-between items-center bg-green-50 dark:bg-green-900/50 p-2 rounded-lg animate-fade-in">
+                    <span class="text-green-800 dark:text-green-200 font-medium flex-1 mr-2">${item.item_name}</span>
+                    <div class="flex items-center">
+                        <button data-item-name="${item.item_name}" data-change="-1" class="inventory-change-btn bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">-</button>
+                        <span class="w-10 text-center font-semibold">${item.quantity}</span>
+                        <button data-item-name="${item.item_name}" data-change="1" class="inventory-change-btn bg-green-200 dark:bg-green-800 hover:bg-green-300 dark:hover:bg-green-700 text-green-800 dark:text-green-100 font-bold w-6 h-6 rounded-full flex items-center justify-center">+</button>
+                    </div>
+                </div>`).join('');
+            }
+        }
+    };
+
+    function savePreferences() {
+        const prefs = {
+            difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value || 'Easy',
+            time: timeSelect.value, servings: servingsInput.value,
+            purchase: purchaseExtras.checked, cuisine: cuisineInput.value
+        };
+        localStorage.setItem('kitchenPreferences', JSON.stringify(prefs));
+    }
+
+    function loadPreferences() {
+        const prefs = JSON.parse(localStorage.getItem('kitchenPreferences'));
+        if (!prefs) return;
+        difficultyGroup.querySelectorAll('button').forEach(b => {
+            b.classList.remove('bg-green-600', 'text-white');
+            if (b.dataset.value === prefs.difficulty) b.classList.add('bg-green-600', 'text-white');
+        });
+        timeSelect.value = prefs.time;
+        servingsInput.value = prefs.servings;
+        cuisineInput.value = prefs.cuisine;
+        purchaseExtras.checked = prefs.purchase;
+        updatePurchaseToggleUI();
+    }
+
+    function updatePurchaseToggleUI() {
+        const knob = purchaseExtras.parentElement.querySelector('span > span');
+        const track = knob.parentElement;
+        knob.style.transform = purchaseExtras.checked ? 'translateX(16px)' : 'translateX(0px)';
+        track.classList.toggle('bg-green-500', purchaseExtras.checked);
+        track.classList.toggle('bg-gray-200', !purchaseExtras.checked);
+        track.classList.toggle('dark:bg-gray-600', !purchaseExtras.checked);
+    }
+
+    // --- EVENT LISTENERS ---
+    pantryUploadArea.addEventListener('click', () => pantryUploadInput.click());
+    pantryUploadInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+            currentPantryFile = file;
+            pantryImage.src = URL.createObjectURL(file);
+            pantryPreview.classList.remove('hidden');
+            pantryUploadArea.classList.add('hidden');
+        }
+    });
+    pantryRemoveBtn.addEventListener('click', () => {
+        currentPantryFile = null;
+        pantryUploadInput.value = '';
+        pantryPreview.classList.add('hidden');
+        pantryUploadArea.classList.remove('hidden');
+    });
+    pantryConfirmBtn.addEventListener('click', async () => {
+        if (!currentPantryFile) return;
+        const formData = new FormData();
+        formData.append('file', currentPantryFile);
+        showLoader('Analyzing your pantry...');
+        try {
+            const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}`, {method: 'POST', body: formData});
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail);
+            showNotification(data.message || 'Inventory updated!', 'success');
+            await fetchAndDisplayInventory();
+        } catch (error) { showNotification(error.message, 'error'); }
+        finally { hideLoader(); pantryRemoveBtn.click(); }
+    });
+    inventoryContainer.addEventListener('click', async (e) => {
+        const button = e.target.closest('.inventory-change-btn');
+        if (!button) return;
+        const itemName = button.dataset.itemName;
+        const change = parseInt(button.dataset.change, 10);
+        try {
+            const response = await fetch(`${API_BASE_URL}/inventory/${user.user_id}/update-item`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({item_name: itemName, change: change}) });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail);
+            await fetchAndDisplayInventory();
+        } catch (error) { showNotification(error.message, 'error'); }
+    });
+    recipesContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('[data-recipe-index]');
+        if (card) {
+            const recipeIndex = parseInt(card.dataset.recipeIndex, 10);
+            openRecipeModal(currentRecipes[recipeIndex]);
+        }
+    });
+    document.getElementById('recipe-modal-close')?.addEventListener('click', () => closeModal(recipeModal));
+    recipeModal?.addEventListener('click', (e) => { if (e.target === recipeModal) closeModal(recipeModal); });
+    document.getElementById('shopping-list-close-btn')?.addEventListener('click', () => closeModal(shoppingListModal));
+    shoppingListModal?.addEventListener('click', (e) => { if (e.target === shoppingListModal) closeModal(shoppingListModal); });
+    savePlanBtn.addEventListener('click', async () => { showLoader('Saving your plan...'); await savePlan(true); hideLoader(); });
+    mealPlannerContainer.addEventListener('click', (e) => {
+        const mealItem = e.target.closest('[data-meal-key]');
+        if (mealItem) {
+            const mealKey = mealItem.dataset.mealKey;
+            const recipe = mealPlan[mealKey];
+            if (recipe) openRecipeModal(recipe);
+        }
+    });
+    removeDropZone.addEventListener('dragover', (e) => { e.preventDefault(); removeDropZone.classList.add('bg-red-700'); });
+    removeDropZone.addEventListener('dragleave', () => removeDropZone.classList.remove('bg-red-700'));
+    removeDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const mealKey = e.dataTransfer.getData('mealKey');
+        if (mealPlan[mealKey]) {
+            delete mealPlan[mealKey];
+            renderMealPlanner();
+            savePlan();
+            showNotification('Meal removed from plan.', 'info');
+        }
+        removeDropZone.classList.add('translate-y-full');
+        setTimeout(() => removeDropZone.classList.add('hidden'), 300);
+    });
+    difficultyGroup.addEventListener('click', e => {
+        const btn = e.target.closest('button[data-value]');
+        if (!btn) return;
+        difficultyGroup.querySelectorAll('button').forEach(b => b.classList.remove('bg-green-600', 'text-white'));
+        btn.classList.add('bg-green-600', 'text-white');
+        savePreferences();
+    });
+    servingsDec.addEventListener('click', () => { if (servingsInput.value > 1) servingsInput.value--; savePreferences(); });
+    servingsInc.addEventListener('click', () => { servingsInput.value++; savePreferences(); });
+    purchaseExtras.addEventListener('change', () => { updatePurchaseToggleUI(); savePreferences(); });
+    [timeSelect, servingsInput, cuisineInput, dietSelector].forEach(el => el.addEventListener('change', savePreferences));
+    dietSelector.addEventListener('change', async () => {
+        const newDiet = dietSelector.value;
+        showNotification('Saving your preference...', 'info');
+        try {
+            const response = await fetch(`${API_BASE_URL}/user/${user.user_id}/update`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({dietary_preference: newDiet})});
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail);
+            showNotification('Diet preference saved!', 'success');
+        } catch (error) { showNotification(error.message, 'error'); }
+    });
+    generateBtn.addEventListener('click', async () => {
+        savePreferences();
+        const payload = { Difficulty: document.querySelector('#difficulty-group .bg-green-600')?.dataset.value, TimeAvailable: parseInt(timeSelect.value), Shopping: purchaseExtras.checked, Cuisine: cuisineInput.value || 'Any', Serving: parseInt(servingsInput.value), Diet: dietSelector.value };
+        showLoader('Generating your recipes...');
+         try {
+            const response = await fetch(`${API_BASE_URL}/recipes/${user.user_id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail);
+            displayRecipes(data.Recipes);
+         } catch(error) { showNotification(error.message, 'error'); }
+         finally { hideLoader(); }
+    });
+
+    // --- INITIAL PAGE LOAD ---
+    loadPreferences();
+    const savedRecipes = JSON.parse(sessionStorage.getItem('lastGeneratedRecipes'));
+    if (savedRecipes) {
+        displayRecipes(savedRecipes);
+    }
+    await fetchAndDisplayInventory();
+    await fetchAndDisplayMealPlan();
+    try {
+        const response = await fetch(`${API_BASE_URL}/user/${user.user_id}`);
+        const userData = await response.json();
+        if (response.ok) dietSelector.value = userData.dietary_preference;
+    } catch (error) { console.error("Could not load user diet preference."); }
+}
     async function initializeGardenPage() {
         const user = getSession();
         if (!user) return;

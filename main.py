@@ -2,7 +2,7 @@ import os
 import io
 import json
 import random
-from typing import Optional
+from typing import Optional, List
 import certifi
 import requests
 from contextlib import asynccontextmanager
@@ -286,35 +286,11 @@ async def save_meal_plan(user_id: str, plan: MealPlan):
     return {"message": "Meal plan saved successfully."}
 
 
-@app.get("/shopping-list/{user_id}", summary="Generate a smart shopping list")
-async def get_shopping_list(user_id: str):
-    # Fetch meal plan and inventory
-    meal_plan_doc = await db["inventory_db"].meal_plans.find_one({"user_id": user_id})
-    inventory_doc = await db["inventory_db"].inventories.find_one({"user_id": user_id})
+# In main.py, replace the get_shopping_list and clean_ingredients functions
 
-    if not meal_plan_doc or not meal_plan_doc.get("entries"):
-        return {"shopping_list": []}
-
-    # Consolidate all ingredients from the meal plan
-    required_ingredients = [ing for entry in meal_plan_doc["entries"] for ing in entry["recipe_ingredients"]]
-
-    # Get current inventory items (lowercase for case-insensitive comparison)
-    inventory_items = {item['item_name'].lower() for item in inventory_doc.get("items", [])}
-
-    # Use AI to clean the descriptive list from the meal plan
-    cleaned_items_response = await clean_ingredients(IngredientsList(ingredients=required_ingredients))
-
-    # Filter out items the user already has
-    shopping_list = {
-        item: qty for item, qty in cleaned_items_response.items()
-        if item.lower() not in inventory_items
-    }
-
-    return {"shopping_list": shopping_list}
-
-@app.post("/clean-ingredients", summary="Cleans a list of descriptive ingredients into a simple format")
-async def clean_ingredients(payload: IngredientsList):
-    descriptive_list = ", ".join(payload.ingredients)
+async def _clean_ingredients_helper(ingredients: List[str]):
+    """A reusable helper function to process ingredient lists with the AI."""
+    descriptive_list = ", ".join(ingredients)
     prompt = f"""
     Analyze the following list of recipe ingredients: [{descriptive_list}].
     Your task is to convert this list into a simple JSON object.
@@ -322,19 +298,49 @@ async def clean_ingredients(payload: IngredientsList):
     The values must be the quantity as an integer. If a quantity is not explicitly mentioned (like "a pinch of salt" or "water"), assume the quantity is 1.
     Return ONLY the raw JSON object, with no markdown formatting or extra text.
     Assume water is always present.
-    and also ignore if the input says from inventory
+    Ignore any text that says 'from inventory'.
     Example input: ["2 large onions, chopped", "a pinch of salt", "water for boiling"]
     Example output: {{"onion": 2, "salt": 1}}
     """
-
     try:
         response = model.generate_content(prompt)
         json_string = response.text.strip().replace("```json", "").replace("```", "")
-        cleaned_data = json.loads(json_string)
-        return cleaned_data
+        return json.loads(json_string)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI processing failed: {str(e)}")
+        # In a real app, you would log the error `e`
+        raise HTTPException(status_code=500, detail="AI processing failed during ingredient cleaning.")
 
+
+@app.get("/shopping-list/{user_id}", summary="Generate a smart shopping list")
+async def get_shopping_list(user_id: str):
+    meal_plan_doc = await db["inventory_db"].meal_plans.find_one({"user_id": user_id})
+    inventory_doc = await db["inventory_db"].inventories.find_one({"user_id": user_id})
+
+    if not meal_plan_doc or not meal_plan_doc.get("entries"):
+        return {"shopping_list": {}}
+
+    required_ingredients = [ing for entry in meal_plan_doc["entries"] for ing in entry.get("ingredients", [])]
+    if not required_ingredients:
+        return {"shopping_list": {}}
+
+    inventory_items = {item['item_name'].lower() for item in inventory_doc.get("items", [])}
+
+    # Use the new helper function
+    cleaned_items = await _clean_ingredients_helper(required_ingredients)
+
+    shopping_list = {
+        item: qty for item, qty in cleaned_items.items()
+        if item.lower() not in inventory_items
+    }
+
+    return {"shopping_list": shopping_list}
+
+
+@app.post("/clean-ingredients", summary="Cleans a list of descriptive ingredients into a simple format")
+async def clean_ingredients(payload: IngredientsList):
+    # This endpoint now also uses the helper for consistency
+    cleaned_data = await _clean_ingredients_helper(payload.ingredients)
+    return cleaned_data
 @app.post("/garden/{user_id}", summary="Add a new plant to the garden")
 async def add_plant_to_garden(user_id: str, plant_name: str = Body(...), file: UploadFile = File(...)):
     if not file.content_type.startswith('image/'):
