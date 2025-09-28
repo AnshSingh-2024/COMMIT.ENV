@@ -172,11 +172,19 @@ class ForumAnswerCreate(BaseModel):
 class GardenChatPayload(BaseModel):
     prompt: str
 
+# In models.py, replace the MealPlanEntry class
+
 class MealPlanEntry(BaseModel):
-    day_of_week: str  # e.g., "Monday"
-    meal_type: str    # e.g., "Lunch"
+    day_of_week: str
+    meal_type: str
+    # Store the full recipe data instead of just the name and ingredients
     recipe_name: str
-    recipe_ingredients: List[str] # Storing ingredients for the shopping list
+    description: str
+    prep_time_minutes: int
+    cook_time_minutes: int
+    ingredients: List[str]
+    instructions: List[str]
+    nutritional_info: Optional[dict] = None
 
 class MealPlan(BaseModel):
     id: str = Field(alias="_id", default_factory=lambda: str(ObjectId()))
