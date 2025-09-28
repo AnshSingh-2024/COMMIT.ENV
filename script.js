@@ -829,7 +829,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         });
     }
 
-async function initializeKitchenPage() {
+    async function initializeKitchenPage() {
     const user = getSession();
     if (!user) return;
 
@@ -864,20 +864,8 @@ async function initializeKitchenPage() {
     const removeDropZone = document.getElementById('remove-drop-zone');
 
     // --- UNIFIED MODAL & HELPER FUNCTIONS ---
-    const openModal = (modal) => {
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.classList.add('modal-open');
-        }
-    };
-    const closeModal = (modal) => {
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.body.classList.remove('modal-open');
-        }
-    };
+    const openModal = (modal) => modal && modal.classList.replace('hidden', 'flex');
+    const closeModal = (modal) => modal && modal.classList.replace('flex', 'hidden');
 
     // --- MEAL PLANNER LOGIC ---
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -1234,6 +1222,45 @@ async function initializeKitchenPage() {
          finally { hideLoader(); }
     });
 
+    // The missing event listener is restored here
+    shoppingListBtn.addEventListener('click', async () => {
+        showLoader('Generating your smart list...');
+        try {
+            const response = await fetch(`${API_BASE_URL}/shopping-list/${user.user_id}`);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail);
+            const shoppingListContent = document.getElementById('shopping-list-content');
+            const shoppingListFooter = document.getElementById('shopping-list-footer');
+            const listItems = Object.entries(data.shopping_list);
+            if (listItems.length === 0) {
+                shoppingListContent.innerHTML = '<p>Your shopping list is empty! Your inventory covers all planned meals.</p>';
+                shoppingListFooter.innerHTML = '';
+            } else {
+                shoppingListContent.innerHTML = '<ul class="list-disc list-inside space-y-2">' + listItems.map(([item, qty]) => `<li>${item}</li>`).join('') + '</ul>';
+                shoppingListFooter.innerHTML = `<button id="shop-shopping-list-btn" class="w-full bg-blue-600 text-white font-medium py-2 rounded-lg">Add to Amazon Cart</button>`;
+                document.getElementById('shop-shopping-list-btn').addEventListener('click', async () => {
+                    showLoader('Generating Amazon link...');
+                    try {
+                        const shopResponse = await fetch(`${API_BASE_URL}/shopping`, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({"additionalProp1": data.shopping_list})
+                        });
+                        const shopData = await shopResponse.json();
+                        if (!shopResponse.ok) throw new Error(shopData.detail);
+                        window.open(shopData.cart_url, '_blank');
+                    } catch (err) {
+                        showNotification(err.message, 'error');
+                    } finally { hideLoader(); }
+                });
+            }
+            openModal(shoppingListModal);
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            hideLoader();
+        }
+    });
+
     // --- INITIAL PAGE LOAD ---
     loadPreferences();
     const savedRecipes = JSON.parse(sessionStorage.getItem('lastGeneratedRecipes'));
@@ -1248,6 +1275,7 @@ async function initializeKitchenPage() {
         if (response.ok) dietSelector.value = userData.dietary_preference;
     } catch (error) { console.error("Could not load user diet preference."); }
 }
+
     async function initializeGardenPage() {
         const user = getSession();
         if (!user) return;
