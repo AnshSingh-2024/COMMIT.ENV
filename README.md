@@ -9,6 +9,11 @@ HomeHarvest AI is a full-stack web application that combines sustainable living 
 The project is deployed and can be accessed here:
 [https://homeharvest-frontend.onrender.com/index.html](https://homeharvest-frontend.onrender.com/index.html)
 
+## 🚀 Demo Video
+
+The project is deployed and can be accessed here:
+[https://youtu.be/Z0-7T47D6Pg?si=myHzWp85y10NMtfg](https://youtu.be/Z0-7T47D6Pg?si=myHzWp85y10NMtfg)
+
 ## ✨ Key Features
 
 The platform is built on three core pillars, each enhanced with powerful generative AI capabilities:
