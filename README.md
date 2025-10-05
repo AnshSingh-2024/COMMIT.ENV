@@ -1,10 +1,13 @@
-Of course. Here is the complete and final version of the `README.md` file, structured like a professional project document. It includes a detailed file structure and a clear setup process as requested.
-
 # 🌱 HomeHarvest AI
 
 _From Garden to Table, Powered by AI_
 
 HomeHarvest AI is a full-stack web application that combines sustainable living with artificial intelligence. It helps users manage their kitchen inventory, grow their own food with AI-powered guidance, and connect with a like-minded community, seamlessly bridging the gap between their garden and their table.
+
+## 🚀 Live Demo
+
+The project is deployed and can be accessed here:
+[https://homeharvest-frontend.onrender.com/index.html](https://homeharvest-frontend.onrender.com/index.html)
 
 ## ✨ Key Features
 
@@ -74,6 +77,7 @@ Here is an overview of the key files and directories in the project:
 ````
 
 ---
+
 
 ## 🚀 Getting Started: Local Setup
 
